@@ -1,0 +1,5 @@
+EXE_INC = \
+-Wnon-virtual-dtor    
+
+LIB_LIBS = \
+    

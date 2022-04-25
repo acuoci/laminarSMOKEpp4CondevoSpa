@@ -1,0 +1,5 @@
+ClusteringAlgorithms.C
+BinningAlgorithm.C
+DMZAlgorithm.C
+
+LIB = $(FOAM_USER_LIBBIN)/libclusteringAlgorithmsOpenSMOKE++

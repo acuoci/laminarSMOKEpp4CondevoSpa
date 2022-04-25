@@ -1,0 +1,4 @@
+      SUBROUTINE CKWYP  (P, T, Y, ICKWRK, RCKWRK, WDOT)
+
+      RETURN
+      END

@@ -1,0 +1,8 @@
+EXE_INC = \
+    -DWM_PROJECT_VERSION=$(WM_PROJECT_VERSION) \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude
+
+LIB_LIBS = \
+    -lfiniteVolume \
+    -lmeshTools

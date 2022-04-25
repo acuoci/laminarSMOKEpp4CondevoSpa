@@ -1,0 +1,3 @@
+ModelTiO2/ModelTiO2.C
+
+LIB = $(FOAM_USER_LIBBIN)/libmaterialSynthesisOpenSMOKE++
