@@ -1,0 +1,76 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  dev
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      SimulationOptions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Kinetic mechanism
+Kinetics
+{
+	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/BFER_CH4_2step/kinetics";
+//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/ChemkinReduced-Lu-CH4Lean-13species/kinetics";
+//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/Attili-Skeletal16/kinetics";
+//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/CRECK-Skeletal-24/kinetics";
+//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/CRECK-Skeletal-24-NOX/kinetics";
+
+	inertSpecies    "N2";	// name of inert species
+}
+
+
+// Additional options
+Clustering	on;
+
+
+// Transport equations to be solved
+solveForEnergyEquation			on;		// The energy equation is solved (default: true)
+solveForCsiEquation			on;		// Transport equation for passive scalar (default: false)
+solveForTauEquation			on;		// Transport equation for local residence time (default: false)
+
+
+// Options for energy equation
+energyEquation				"temperature";	// Energy equation: temperature (default) | enthalpy
+diffusionInEnergyEquation		on;		// The enthalpy fluxes associated to mass diffusion are included in the energy equation (default: true)
+viscousHeatingSourceTerm		on;		// The viscous heating source term is included in the energy equation (default: false)
+temperatureGradientBasedConductiveFlux	on;		// In the enthalpy equation, the conductive flux is written as the gradient of temperature (default: )
+dpdt					on;		// The Dp/Dt term is included in the energy equation
+
+
+// Options for transport of species
+diffusivityModel			"mix-averaged";	// Diffusion model: mix-averaged (default) | lewis-numbers
+moleFractionGradientBasedDiffusion	on;		// The Fick's law is written using the gradient of mole fractions (default: on)
+diffusionFluxCorrection			on;		// The correction diffusion fluxes are calculated and applied (default: on)
+closureOnInert				on;		// The closure of species is carried out on the user-specified inert (default: true)
+soretEffect				on;		// The Soret effect is included in the diffusion term of species (default: true)
+
+
+// Options for chemistry
+homogeneousReactions			on;		// The homogeneous reactions are turned on (default: true)
+minTemperatureForChemistry		290;		// The chemistry is not solved in cells where the temperature is below this threshold (default: 270 K)
+
+
+// Options for ODE solvers
+OdeHomogeneous
+{
+	odeSolver 	"OpenSMOKE++";		// Ode solver: OpenSMOKE++ | CVODE
+	relTolerance 	1e-6;			// Relative tolerance:	1e-6 to 1e-10
+	absTolerance 	1e-10;			// Absolute tolerance:	1e-10 to 1e-14
+	maximumOrder 	5;			// Maximum order: 1 to 5
+	fullPivoting 	false;			// Full pivoting: true | false
+}
+
+
+// Constraints on temperature
+Tmin					270;	// Minimum allowed temperature (default: 270 K)
+Tmax					2500;	// Maximum allowed temperature (default: 3500 K)
+

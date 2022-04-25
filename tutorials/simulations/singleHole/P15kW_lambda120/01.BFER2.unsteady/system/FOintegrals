@@ -1,0 +1,31 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.7.1                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      binary;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+volIntegrals
+{
+	enabled		true;
+	log		true;
+
+        type            volFieldValue;
+        libs            ("libfieldFunctionObjects.so");
+
+	region			fluid;
+        fields			( mix:Q CH4 O2 H2O CO2 CO );
+	operation 		volIntegrate;
+	writeFields		false;        
+}
+

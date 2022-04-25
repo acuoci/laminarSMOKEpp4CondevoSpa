@@ -1,0 +1,34 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  dev
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      Clustering;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Algorithm for clustering: Binning | DMZ
+algorithm			Binning;
+
+// Accuracy coefficient values and types (absolute or relative)
+fields				( T   CH4   CO2   CO   ) ;
+epsilon				( 2   0.05  0.05  0.05 ) ;
+epsilonTypes			( abs rel   rel   rel  ) ;
+
+// Policy for backward-mapping of species: correctedLinearInterpolation (default) | linearInterpolation
+speciesBackwardMapping		correctedLinearInterpolation;
+
+// Policy for backward-mapping of temperature: linearInterpolation (default) | reconstructed
+temperatureBackwardMapping	linearInterpolation;
+
+// Verbosity level (default: 1)
+verbosity	1;
+
