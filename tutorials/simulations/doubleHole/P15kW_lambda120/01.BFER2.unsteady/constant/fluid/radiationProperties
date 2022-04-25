@@ -1,0 +1,136 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  7
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      radiationProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Radiative heat transfer on/off
+radiation on;
+
+// Radiation model
+radiationModel  P1;
+
+// Number of flow iterations per radiation iteration
+solverFreq 10;
+
+// Absorption emission model
+absorptionEmissionModel greyMean;
+
+// Additional options for optically-thin model
+opticallyThinCoeffs
+{
+	ambientTemperature 300;
+}
+
+// Mean absorption coefficients
+greyMeanCoeffs
+{
+    // Correction coefficients for gas and soot contributions
+    gasCorrectionCoefficient 	1;
+    sootCorrectionCoefficient 	1;
+
+    // Soot model: none | Smooke | Kent | Sazhin
+    sootModel none;
+
+    // Correlations for Planck mean absorption coefficients of gaseous species
+
+    H2O
+    {
+        Tcommon         200;
+        invTemp         true;
+        Tlow            200;
+        Thigh           5000;
+
+        loTcoeffs ( 0        0         0         0         0           0        );
+        hiTcoeffs (-0.23093 -1.12390e3 9.4153e6 -2.99885e9 0.51382e12 -1.868e10 );
+    }
+
+    O2
+    {
+        Tcommon         200;
+        invTemp         true;
+        Tlow            200;
+        Thigh           5000;
+
+	loTcoeffs (0   0 0 0 0 0);
+	hiTcoeffs (0.1 0 0 0 0 0);
+    }
+
+    CO2
+    {
+        Tcommon         200;
+        invTemp         true;
+        Tlow            200;
+        Thigh           5000;
+
+        loTcoeffs ( 0       0        0        0        0         0         );
+        hiTcoeffs ( 18.741 -121.31e3 273.5e6 -194.05e9 56.31e12 -5.8169e15 );
+    }
+
+    CO
+    {
+        Tcommon         750;   
+        invTemp         false; 
+        Tlow            200;   
+        Thigh           5000;  
+
+        loTcoeffs ( 4.7869 -0.06953 2.9577e-4 -4.25732e-7 2.02894e-10 0 );
+        hiTcoeffs ( 10.09 -0.01183 4.7753e-6 -5.87209e-10 -2.5334e-14 0 );
+    }
+
+    CH4
+    {
+        Tcommon         200;
+        Tlow            200;
+        Thigh           5000;
+        invTemp         false;
+
+        loTcoeffs ( 0       0         0         0           0          0 );
+        hiTcoeffs ( 6.6334 -0.0035686 1.6682e-8 2.5611e-10 -2.6558e-14 0 );
+    }
+
+    N2
+    {
+        Tcommon         200;
+        invTemp         true;
+        Tlow            200;
+        Thigh           5000;
+
+        loTcoeffs (0   0 0 0 0 0);
+	hiTcoeffs (0.1 0 0 0 0 0);
+    }
+
+    // Lookup table
+    lookUpTableFileName      none;
+    EhrrCoeff                0.0;
+
+}
+
+// Scatter model
+scatterModel    none;
+
+// Soot model
+sootModel       none;
+
+// Numerical parameters for DO method
+fvDOMCoeffs
+{
+    nPhi        2;      // azimuthal angles in PI/2 on X-Y.(from Y to X)
+    nTheta      2;      // polar angles in PI (from Z to X-Y plane)
+    tolerance   1e-1;   // convergence tolerance for radiation iteration
+    maxIter     1;      // maximum number of iterations
+}
+
+
