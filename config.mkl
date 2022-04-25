@@ -1,0 +1,13 @@
+#Compulsory libraries
+export EIGEN_LIBRARY_PATH=/software/chimica2/libraries/eigen/eigen-3.3.7
+export BOOST_LIBRARY_PATH=/software/chimica2/libraries/boost/boost-1.72.0-gcc-9.2.0
+export OPENSMOKEPP_LIBRARY_PATH=/home/chimica2/cuoci/Desktop/laminarSMOKE++4Condevo/libs/openSMOKE++4laminarSMOKE++
+
+#Options: Intel MKL (strongly suggested)
+export MKL_SUPPORT='-DOPENSMOKE_USE_MKL=1'
+
+#Only if the OPENSMOKE_USE_MKL is turned on
+export MKL_PATH=/home/chimica2/cuoci/intel-2019/compilers_and_libraries/linux/mkl/
+export MKL_LIBS='-Wl,--start-group $(MKL_PATH)/lib/intel64/libmkl_intel_lp64.a $(MKL_PATH)/lib/intel64/libmkl_core.a $(MKL_PATH)/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm'
+
+
