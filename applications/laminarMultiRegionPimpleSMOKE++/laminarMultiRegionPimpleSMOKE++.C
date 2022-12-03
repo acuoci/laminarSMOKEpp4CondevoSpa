@@ -165,131 +165,18 @@ int main(int argc, char *argv[])
 				// Pressure corrector loop
 				while (pimple.correct())
 				{
-				//	if (pimple.consistent())
-				//	{
-				//		#include "pcEqn.H"
-				//	}
-				//	else
-				//	{
-						#include "pEqn.H"
-				//	}
+					#include "pEqn.H"
 				}
 
-			/*
-			if (!pimple.flow())
-            		{
-                		if (pimple.models())
-                		{
-                    			fvModels.correct();
-                		}
+				// Update the density from the new pressure field
+				rho = mixture.rho();
 
-                		// Thermophysics
-                		{
-					// Update fluxes and transport terms in species/energy equations
-					mixture.update_transport_terms(mesh, rho);
-
-					// Species equations 
-					#include "YEqn.H"
-
-					// Additional equations (HMOM, etc.)
-					mixture.solve_additional_equations(mesh, rho, phi);
-
-					// Energy equation
-					#include "EEqn.H"
-
-					// Chemical step
-					{
-						const double t0 = runTime.value() - runTime.deltaT().value();
-						const double tf = runTime.value();
-						mixture.chemistry_direct_integration(t0, tf, mesh, rho);
-					}
-
-					// Update mixture properties
-					mixture.update_properties();
-                		}
-			}
-           		else
-			{
-				if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
-                		{		
-                    			// Store momentum to set rhoUf for introduced faces.
-                    			autoPtr<volVectorField> rhoU;
-                    			if (rhoUf.valid())
-                   			{
-                        			rhoU = new volVectorField("rhoU", rho*U);
-                    			}
-
-
-					// No mesh changes
-					
-                    			fvModels.preUpdateMesh();
-
-                    			// Do any mesh changes
-                   	 		mesh.update();
-
-                    			if (mesh.changing())
-                    			{
-                        			MRF.update();
-
-						if (correctPhi)
-						{
-							#include "correctPhi.H"
-						}
-
-						if (checkMeshCourantNo)
-						{
-							#include "meshCourantNo.H"
-						}
-                    			}
-                		}	
-
-               	 		if (pimple.firstPimpleIter() && !pimple.simpleRho())
-                		{
-                    			#include "rhoEqn.H"
-                		}
-
-                		if (pimple.models())
-                		{
-                    			fvModels.correct();
-                		}		
-
-
-				// Momentum equations
-				#include "UEqn.H"
-
-				// Thermophysics
+				// Passive scalars
+				if (is_fluid_active == true)
 				{
-
-					// Update fluxes and transport terms in species/energy equations
-					mixture.update_transport_terms(mesh, rho);
-
-					// Species equations 
-					#include "YEqn.H"
-
-					// Additional equations (HMOM, etc.)
-					mixture.solve_additional_equations(mesh, rho, phi);
-
-					// Energy equation
-					#include "EEqn.H"
-
-					// Chemical step
-					{
-						const double t0 = runTime.value() - runTime.deltaT().value();
-						const double tf = runTime.value();
-						mixture.chemistry_direct_integration(t0, tf, mesh, rho);
-					}
-
-					// Update mixture properties
-					mixture.update_properties();
+            				#include "csiEqn.H"
+					#include "tauEqn.H"
 				}
-
-				// --- Pressure corrector loop
-                		while (pimple.correct())
-                		{
-                    			#include "pEqn.H"
-                		}
-			}*/
-
 			}
 
 			
@@ -304,16 +191,6 @@ int main(int argc, char *argv[])
                 			#include "solidEEqn.H"
             			}
 			}
-		}
-
-		// Update the density from the new pressure field
-		rho = mixture.rho();
-
-		// Passive scalars
-		if (is_fluid_active == true)
-		{
-            		#include "csiEqn.H"
-			#include "tauEqn.H"
 		}
 
 		// On-the-fly post processing

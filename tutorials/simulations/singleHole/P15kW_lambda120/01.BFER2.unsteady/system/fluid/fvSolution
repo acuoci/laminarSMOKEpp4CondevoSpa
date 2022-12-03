@@ -80,10 +80,28 @@ solvers
         relTol          0;
     }
 
-    csi
+    "(csi|tau)"
     {
         solver          PBiCGStab;
         preconditioner  DILU;
+        tolerance       1e-8;
+        relTol          0.01;
+        nSweeps         1;
+    }
+
+    "(csi|tau)Final"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       1e-9;
+        relTol          0;
+        nSweeps         1;
+    }
+
+    csi
+    {
+        solver          PCG;
+        preconditioner  DIC;
         tolerance       1e-8;
         relTol          0;
 	minIter		1;
@@ -91,8 +109,8 @@ solvers
 
     tau
     {
-        solver          PBiCGStab;
-        preconditioner  DILU;
+        solver          PCG;
+        preconditioner  DIC;
         tolerance       1e-8;
         relTol          0;
 	minIter		1;

@@ -35,7 +35,7 @@ boundaryField
     }
     solid_to_fluid
     {
-        type            compressible::turbulentTemperatureCoupledBaffleMixedOpenSMOKEpp;
+        type            compressible::turbulentTemperatureCoupledBaffleMixed;
         value           uniform 800.;
         Tnbr            T;
     }

@@ -58,7 +58,7 @@ boundaryField
     }
     fluid_to_solid
     {
-        type            compressible::turbulentTemperatureCoupledBaffleMixedOpenSMOKEpp;
+        type            compressible::turbulentTemperatureCoupledBaffleMixed;
         Tnbr            T;
         value           uniform 298.15;
     }

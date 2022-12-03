@@ -18,7 +18,7 @@ FoamFile
 // Kinetic mechanism
 Kinetics
 {
-	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/BFER_CH4_2step/kinetics";
+	folder		"/home/acuoci/OpenFOAM/acuoci-9/applications/laminarSMOKEpp4CondevoSpa/tutorials/kineticMechanisms/BFER_CH4_2step/kinetics/";
 //	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/ChemkinReduced-Lu-CH4Lean-13species/kinetics";
 //	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/Attili-Skeletal16/kinetics";
 //	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/CRECK-Skeletal-24/kinetics";
@@ -29,13 +29,13 @@ Kinetics
 
 
 // Additional options
-Clustering	on;
+Clustering	off;
 
 
 // Transport equations to be solved
 solveForEnergyEquation			on;		// The energy equation is solved (default: true)
-solveForCsiEquation			on;		// Transport equation for passive scalar (default: false)
-solveForTauEquation			on;		// Transport equation for local residence time (default: false)
+solveForCsiEquation			off;		// Transport equation for passive scalar (default: false)
+solveForTauEquation			off;		// Transport equation for local residence time (default: false)
 
 
 // Options for energy equation

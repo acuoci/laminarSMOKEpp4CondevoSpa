@@ -36,8 +36,8 @@ divSchemes
     div(phid,p)     			Gauss upwind;
     div(mix:hs_Js)  			Gauss upwind;
     
-    div(phi,csi)      			Gauss upwind;
-    div(phi,tau)      			Gauss upwind;
+    div(phi,csi)      			Gauss linear;
+    div(phi,tau)      			Gauss linear;
 
     div(Ji,Ii_h)    			bounded Gauss linearUpwind grad(Ii_h);
     div((mix:mu*dev2(grad(U).T())))	Gauss linear;
@@ -45,8 +45,8 @@ divSchemes
 
 laplacianSchemes
 {
-//  default         Gauss linear orthogonal;
-    default         Gauss linear corrected;
+    default         Gauss linear orthogonal;
+//  default         Gauss linear corrected;
 }
 
 interpolationSchemes

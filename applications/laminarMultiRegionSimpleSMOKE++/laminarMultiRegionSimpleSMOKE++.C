@@ -80,6 +80,8 @@ int main(int argc, char *argv[])
 
 	// Create multiple meshes
 	#include "createMeshes.H"
+	fvMesh& mesh = fluidRegions[0];
+	fvMesh& solidMesh = solidRegions[0];
 
 	// Create fields
 	#include "createFields.H"
