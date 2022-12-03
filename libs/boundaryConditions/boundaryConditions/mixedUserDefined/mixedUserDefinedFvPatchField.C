@@ -1,0 +1,250 @@
+/*-----------------------------------------------------------------------*\
+|                                                                         |
+|   ╭╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━━━┳━╮╭━┳━━━┳╮╭━┳━━━╮                               |
+|   ┃┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┃╭━╮┃┃╰╯┃┃╭━╮┃┃┃╭┫╭━━╯                               |
+|   ┃┃╭━━┳╮╭┳┳━╮╭━━┳━┫╰━━┫╭╮╭╮┃┃╱┃┃╰╯╯┃╰━━┳╮╱╭╮                           |
+|   ┃┃┃╭╮┃╰╯┣┫╭╮┫╭╮┃╭┻━━╮┃┃┃┃┃┃┃╱┃┃╭╮┃┃╭━┳╯╰┳╯╰╮                          |
+|   ┃╰┫╭╮┃┃┃┃┃┃┃┃╭╮┃┃┃╰━╯┃┃┃┃┃┃╰━╯┃┃┃╰┫╰━┻╮╭┻╮╭╯                          |
+|   ╰━┻╯╰┻┻┻┻┻╯╰┻╯╰┻╯╰━━━┻╯╰╯╰┻━━━┻╯╰━┻━━━┻╯╱╰╯                           |
+|                                                                         |
+|   Authors: Alberto Cuoci                                                |
+|                                                                         |
+|   Contacts: Alberto Cuoci                                               |
+|   email: alberto.cuoci@polimi.it                                        |
+|   Department of Chemistry, Materials and Chemical Engineering           |
+|   Politecnico di Milano                                                 |
+|   P.zza Leonardo da Vinci 32, 20133 Milano (Italy)                      |
+|                                                                         |
+|-------------------------------------------------------------------------|
+|                                                                         |
+|   This file is part of laminarSMOKE++ solver.                           |
+|                                                                         |
+|   License                                                               |
+|                                                                         |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
+|   laminarSMOKE++ is free software: you can redistribute it and/or       |
+|   modify it under the terms of the GNU General Public License           |
+|   as published by the Free Software Foundation, either version 3 of     |
+|   the License, or (at your option) any later version.                   |
+|                                                                         |
+|   laminarSMOKE++ is distributed in the hope that it will be useful,     |
+|   but WITHOUT ANY WARRANTY; without even the implied warranty of        |
+|   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         |
+|   GNU General Public License for more details.                          |
+|                                                                         |
+|   You should have received a copy of the GNU General Public License     |
+|   along with laminarSMOKE++.                                            |
+|   If not, see <http://www.gnu.org/licenses/>.                           |
+|                                                                         |
+\*-----------------------------------------------------------------------*/
+
+#include "mixedUserDefinedFvPatchField.H"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+namespace Foam
+{
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class Type>
+mixedUserDefinedFvPatchField<Type>::mixedUserDefinedFvPatchField
+(
+    const fvPatch& p,
+    const DimensionedField<Type, volMesh>& iF
+)
+:
+    fvPatchField<Type>(p, iF),
+    alfa_(p.size()),
+    beta_(p.size()),
+    eta_(p.size()),
+    epsilon_(p.size()),
+    omega0_(p.size()),
+    rho0_(p.size())
+{}
+
+
+template<class Type>
+mixedUserDefinedFvPatchField<Type>::mixedUserDefinedFvPatchField
+(
+    const fvPatch& p,
+    const DimensionedField<Type, volMesh>& iF,
+    const dictionary& dict
+)
+:
+    fvPatchField<Type>(p, iF, dict, false),
+    alfa_("alfa", dict, p.size()),
+    beta_("beta", dict, p.size()),
+    eta_("eta", dict, p.size()),
+    epsilon_("epsilon", dict, p.size()),
+    omega0_("omega0", dict, p.size()),
+    rho0_("rho0", dict, p.size())
+{
+    evaluate();
+}
+
+
+template<class Type>
+mixedUserDefinedFvPatchField<Type>::mixedUserDefinedFvPatchField
+(
+    const mixedUserDefinedFvPatchField<Type>& ptf,
+    const fvPatch& p,
+    const DimensionedField<Type, volMesh>& iF,
+    const fvPatchFieldMapper& mapper,
+    const bool mappingRequired
+)
+:
+    fvPatchField<Type>(ptf, p, iF, mapper, mappingRequired),
+    alfa_(mapper(ptf.alfa_)),
+    beta_(mapper(ptf.beta_)),
+    eta_(mapper(ptf.eta_)),
+    epsilon_(mapper(ptf.epsilon_)),
+    omega0_(mapper(ptf.omega0_)),
+    rho0_(mapper(ptf.rho0_))
+{
+    if (mappingRequired && notNull(iF) && mapper.hasUnmapped())
+    {
+        WarningInFunction
+            << "On field " << iF.name() << " patch " << p.name()
+            << " patchField " << this->type()
+            << " : mapper does not map all values." << nl
+            << "    To avoid this warning fully specify the mapping in derived"
+            << " patch fields." << endl;
+    }
+}
+
+template<class Type>
+mixedUserDefinedFvPatchField<Type>::mixedUserDefinedFvPatchField
+(
+    const mixedUserDefinedFvPatchField<Type>& ptf,
+    const DimensionedField<Type, volMesh>& iF
+)
+:
+    fvPatchField<Type>(ptf, iF),
+    alfa_(ptf.alfa_),
+    beta_(ptf.beta_),
+    eta_(ptf.eta_),
+    epsilon_(ptf.epsilon_),
+    omega0_(ptf.omega0_),
+    rho0_(ptf.rho0_)
+{}
+
+
+// * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class Type>
+void mixedUserDefinedFvPatchField<Type>::autoMap
+(
+    const fvPatchFieldMapper& m
+)
+{
+    fvPatchField<Type>::autoMap(m);
+
+    m(alfa_, alfa_);
+    m(beta_, beta_);
+    m(eta_, eta_);
+    m(epsilon_, epsilon_);
+    m(omega0_, omega0_);
+    m(rho0_, rho0_);
+}
+
+
+template<class Type>
+void mixedUserDefinedFvPatchField<Type>::rmap
+(
+    const fvPatchField<Type>& ptf,
+    const labelList& addr
+)
+{
+    fvPatchField<Type>::rmap(ptf, addr);
+
+    const mixedUserDefinedFvPatchField<Type>& mptf =
+        refCast<const mixedUserDefinedFvPatchField<Type> >(ptf);
+
+    alfa_.rmap(mptf.alfa_, addr);
+    beta_.rmap(mptf.beta_, addr);
+    eta_.rmap(mptf.eta_, addr);
+    epsilon_.rmap(mptf.epsilon_, addr);
+    omega0_.rmap(mptf.omega0_, addr);
+    rho0_.rmap(mptf.rho0_, addr);
+}
+
+
+template<class Type>
+void mixedUserDefinedFvPatchField<Type>::evaluate(const Pstream::commsTypes)
+{
+    if (!this->updated())
+    {
+        this->updateCoeffs();
+    }
+
+    Field<Type>::operator=
+    (
+	Type(pTraits<Type>::one)*( eta_*alfa_ / (alfa_+beta_)*omega0_ + epsilon_/(alfa_+beta_) ) + beta_/(alfa_+beta_)*this->patchInternalField()
+    );
+
+    fvPatchField<Type>::evaluate();
+}
+
+
+template<class Type>
+tmp<Field<Type> > mixedUserDefinedFvPatchField<Type>::snGrad() const
+{
+    return Type(pTraits<Type>::one)*( eta_*alfa_ / (alfa_+beta_)*omega0_ + epsilon_/(alfa_+beta_) )*this->patch().deltaCoeffs()
+		-(alfa_/(alfa_+beta_))*this->patch().deltaCoeffs()*this->patchInternalField() ;
+}
+
+
+template<class Type>
+tmp<Field<Type> > mixedUserDefinedFvPatchField<Type>::valueInternalCoeffs
+(
+    const tmp<scalarField>&
+) const
+{
+    return Type(pTraits<Type>::one)*(beta_/(alfa_+beta_));
+}
+
+
+template<class Type>
+tmp<Field<Type> > mixedUserDefinedFvPatchField<Type>::valueBoundaryCoeffs
+(
+    const tmp<scalarField>&
+) const
+{
+    return Type(pTraits<Type>::one)*( eta_*alfa_ / (alfa_+beta_)*omega0_ + epsilon_/(alfa_+beta_) );
+}
+
+
+template<class Type>
+tmp<Field<Type> > mixedUserDefinedFvPatchField<Type>::gradientInternalCoeffs() const
+{
+    return -Type(pTraits<Type>::one)*(alfa_/(alfa_+beta_))*this->patch().deltaCoeffs();
+}
+
+
+template<class Type>
+tmp<Field<Type> > mixedUserDefinedFvPatchField<Type>::gradientBoundaryCoeffs() const
+{
+    return Type(pTraits<Type>::one)*( eta_*alfa_ / (alfa_+beta_)*omega0_ + epsilon_/(alfa_+beta_) )*this->patch().deltaCoeffs();
+}
+
+
+template<class Type>
+void mixedUserDefinedFvPatchField<Type>::write(Ostream& os) const
+{
+    fvPatchField<Type>::write(os);
+    writeEntry(os, "alfa", alfa_);
+    writeEntry(os, "beta", beta_);
+    writeEntry(os, "eta", eta_);
+    writeEntry(os, "epsilon", epsilon_);
+    writeEntry(os, "omega0", omega0_);
+    writeEntry(os, "rho0", rho0_);
+    writeEntry(os, "value", *this);
+}
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+} // End namespace Foam
+
+// ************************************************************************* //
