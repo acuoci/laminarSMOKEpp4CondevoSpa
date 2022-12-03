@@ -1,31 +1,38 @@
 EXE_INC = \
     -w \
-    -DWM_PROJECT_VERSION=$(WM_PROJECT_VERSION) \
     $(MKL_SUPPORT) \
     -I. \
     -I../../src \
     -I../../libs/radiationModels/lnInclude \
     -I../../libs/clusteringAlgorithms/lnInclude \
-    -I../../libs/materialSynthesis/lnInclude \
+    -I../../libs/pcaAlgorithms/lnInclude \
+    -I../../libs/noxPostProcessor/lnInclude \
     -I$(BOOST_LIBRARY_PATH)/include \
     -I$(EIGEN_LIBRARY_PATH) \
     -I$(OPENSMOKEPP_LIBRARY_PATH)/source \
     -I$(MKL_PATH)/include \
+    -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude \
     -I$(LIB_SRC)/sampling/lnInclude \
-    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude
 
 EXE_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
     -L$(BOOST_LIBRARY_PATH)/lib \
     $(MKL_LIBS) \
+    -ldynamicFvMesh \
+    -ltopoChangerFvMesh \
+    -lsolidThermo \
     -lfiniteVolume \
-    -lfvOptions \
+    -lfvModels \
+    -lfvConstraints \
     -lmeshTools \
     -lradiationModelsOpenSMOKE++ \
     -lclusteringAlgorithmsOpenSMOKE++ \
-    -lmaterialSynthesisOpenSMOKE++ \
+    -lpcaAlgorithmsOpenSMOKE++ \
+    -lnoxPostProcessorOpenSMOKE++ \
     -lboundaryConditions \
     -lsampling \
     -lboost_date_time \

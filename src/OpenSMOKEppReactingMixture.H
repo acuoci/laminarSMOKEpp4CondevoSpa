@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -72,17 +72,17 @@
 #include "chemistry/BatchReactorHomogeneousConstantPressure_DRG.H"
 #include "chemistry/BatchReactorHomogeneousConstantPressure_DRG_ODE_Interface.H"
 
-// Detailed chemistry + TIO2
-#include "chemistry/BatchReactorHomogeneousConstantPressure_TIO2.H"
-#include "chemistry/BatchReactorHomogeneousConstantPressure_TIO2_ODE_Interface.H"
+// NOx post-processing
+#include "chemistry/BatchReactorHomogeneousConstantPressure_NOxPP.H"
+#include "chemistry/BatchReactorHomogeneousConstantPressure_NOxPP_ODE_Interface.H"
 
 // Include additional sub-models
 #include "soot/polimiSoot/PolimiSootModel.H"
 #include "soot/hmom/HMOMModel.H"
 #include "drg/DRG.H"
 #include "clustering/Clustering.H"
-#include "repairing/Repairing.H"
-#include "materialSynthesis/TiO2.H"
+#include "pca/PCA.H"
+#include "noxpp/NOxPostProcessor.H"
 
 // Include chemistry linear model for steady state calculations
 #if STEADYSTATE == 1
@@ -104,8 +104,9 @@ namespace Foam
 	typedef OdeSMOKE::KernelDense<OpenSMOKE::BatchReactorHomogeneousConstantPressure_DRG_ODE_OpenSMOKE> denseOdeConstantPressure_DRG;
 	typedef OdeSMOKE::MethodGear<denseOdeConstantPressure_DRG> methodGearConstantPressure_DRG;
 
-	typedef OdeSMOKE::KernelDense<OpenSMOKE::BatchReactorHomogeneousConstantPressure_TIO2_ODE_OpenSMOKE> denseOdeConstantPressure_TIO2;
-	typedef OdeSMOKE::MethodGear<denseOdeConstantPressure_TIO2> methodGearConstantPressure_TIO2;
+        typedef OdeSMOKE::KernelDense<OpenSMOKE::BatchReactorHomogeneousConstantPressure_NOxPP_ODE_OpenSMOKE> denseOdeConstantPressure_NOxPP;
+        typedef OdeSMOKE::MethodGear<denseOdeConstantPressure_NOxPP> methodGearConstantPressure_NOxPP;
+
 
 	enum EnergyEquationFormulation { ENERGY_EQ_ENTHALPY, ENERGY_EQ_TEMPERATURE } ;
 	enum DiffusivityModel { DIFFUSIVITY_MODEL_MIX_AVERAGED, DIFFUSIVITY_MODEL_LEWIS_NUMBERS } ;
@@ -139,11 +140,11 @@ namespace Foam
 		//- Clustering Model
 		autoPtr<Clustering> clusteringModel_;
 
-		//- Repairing Model
-		autoPtr<Repairing> repairingModel_;
+		//- Clustering Model
+		autoPtr<PCA> pcaModel_;
 
-		//- Repairing Model
-		autoPtr<TiO2> tio2Model_;
+		//- NOx post-processor Model
+		autoPtr<NOxPostProcessor> noxPostProcessorModel_;
 
 		//- Chemistry Linear Model
 		#if STEADYSTATE == 1
@@ -154,21 +155,21 @@ namespace Foam
 		OdeSMOKE::MultiValueSolver<methodGearConstantPressure>* odeSolverConstantPressure_;
 		OdeSMOKE::MultiValueSolver<methodGearConstantPressure_HMOM>* odeSolverConstantPressure_HMOM_;
 		OdeSMOKE::MultiValueSolver<methodGearConstantPressure_DRG>* odeSolverConstantPressure_DRG_;
-		OdeSMOKE::MultiValueSolver<methodGearConstantPressure_TIO2>* odeSolverConstantPressure_TIO2_;
+		OdeSMOKE::MultiValueSolver<methodGearConstantPressure_NOxPP>* odeSolverConstantPressure_NOxPP_;
 
 		//- CVODE solver for stiff problems
 		#if OPENSMOKE_USE_SUNDIALS == 1
 		OpenSMOKE::BatchReactorHomogeneousConstantPressure_ODE_CVODE *cvodeSolverConstantPressure_;
 		OpenSMOKE::BatchReactorHomogeneousConstantPressure_HMOM_ODE_CVODE *cvodeSolverConstantPressure_HMOM_;
 		OpenSMOKE::BatchReactorHomogeneousConstantPressure_DRG_ODE_CVODE *cvodeSolverConstantPressure_DRG_;
-		OpenSMOKE::BatchReactorHomogeneousConstantPressure_TIO2_ODE_CVODE *cvodeSolverConstantPressure_TIO2_;
+		OpenSMOKE::BatchReactorHomogeneousConstantPressure_NOxPP_ODE_CVODE *cvodeSolverConstantPressure_NOxPP_;
 		#endif
 		
 		//- Batch reactor with constant pressure
 		BatchReactorHomogeneousConstantPressure* batchReactorHomogeneousConstantPressure_;
 		BatchReactorHomogeneousConstantPressure_HMOM* batchReactorHomogeneousConstantPressure_HMOM_;
 		BatchReactorHomogeneousConstantPressure_DRG* batchReactorHomogeneousConstantPressure_DRG_;
-		BatchReactorHomogeneousConstantPressure_TIO2* batchReactorHomogeneousConstantPressure_TIO2_;
+		BatchReactorHomogeneousConstantPressure_NOxPP* batchReactorHomogeneousConstantPressure_NOxPP_;
 
 		//- ODE parameters for solution of ODE systems
 		OpenSMOKE::ODE_Parameters odeParameterBatchReactorHomogeneous_;
@@ -335,6 +336,9 @@ namespace Foam
 		//- Should the chemical reactions in the gaseous phase be taken into account?
 		Switch homogeneousReactions_;
 
+		//- Is the Sutherland law adopted instead of the mixing rules? (default: false)
+		Switch viscositySutherlandLaw_;
+
 		//- Minimum temperature below which no chemistry integration is carried out
 		scalar direct_integration_minimum_temperature_for_chemistry_;
 
@@ -362,11 +366,11 @@ namespace Foam
 		//- Is the Clustering Model turned on?
 		Switch clustering_;
 
-		//- Is the Repairing Model turned on?
-		Switch repairing_;
+		//- Is the PCA Model turned on?
+		Switch pca_;
 
-		//- Is the TiO2 Model turned on?
-		Switch tio2_;
+		//- Is the NOx post-processor Model turned on?
+		Switch noxPostProcessor_;
 
 		#if STEADYSTATE == 1
 
@@ -549,11 +553,11 @@ namespace Foam
 		//- Is the Clustering Model turned on?
 		Switch clustering() const { return clustering_; }
 
-		//- Is the Repairing Model turned on?
-		Switch repairing() const { return repairing_; }
+		//- Is the PCA Model turned on?
+		Switch pca() const { return pca_; }
 
-		//- Is the TiO2 model turned on?
-		Switch tio2() const { return tio2_; }
+		//- Is the NOx post-proessor model turned on?
+		Switch noxPostProcessor() const { return noxPostProcessor_; }
 
 		// Member Functions
 
@@ -741,6 +745,22 @@ namespace Foam
 
 		//- Return the const correction on the diffusion fluxes associated to the molecular weight
 		inline const volScalarField& mwDiffusionCorrection(const word& specieName) const;
+
+
+		//- HMOM Model
+		HMOMModel& hmomModel() { return hmomModel_(); }
+
+		//- DRG Model
+		DRG& drgModel() { return drgModel_(); }
+
+		//- Clustering Model
+		Clustering& clusteringModel() { return clusteringModel_(); }
+
+		//- PCA Model
+		PCA& pcaModel() { return pcaModel_(); }
+
+                //- NOx post-processor Model
+                NOxPostProcessor& noxPostProcessorModel() { return  noxPostProcessorModel_(); }
 
 
 		//- Density [kg/m3] - uses current value of pressure

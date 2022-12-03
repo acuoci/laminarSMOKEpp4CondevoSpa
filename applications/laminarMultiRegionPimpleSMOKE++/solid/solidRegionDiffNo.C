@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -41,31 +41,26 @@
 #include "solidRegionDiffNo.H"
 #include "surfaceInterpolate.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 Foam::scalar Foam::solidRegionDiffNo
 (
-    const fvMesh& mesh,
-    const Time& runTime,
-    const volScalarField& Cprho,
-    const volScalarField& kappa
+	const fvMesh& mesh,
+	const Time& runTime,
+	const volScalarField& Cprho,
+	const volScalarField& kappa
 )
 {
-    surfaceScalarField kapparhoCpbyDelta
-    (
-        sqr(mesh.surfaceInterpolation::deltaCoeffs())
-       *fvc::interpolate(kappa)
-       /fvc::interpolate(Cprho)
-    );
+	surfaceScalarField kapparhoCpbyDelta
+	(
+		sqr(mesh.surfaceInterpolation::deltaCoeffs())
+		*fvc::interpolate(kappa)
+		/fvc::interpolate(Cprho)
+	);
 
-    const scalar DiNum = max(kapparhoCpbyDelta).value()*runTime.deltaTValue();
-    const scalar meanDiNum =
-        average(kapparhoCpbyDelta).value()*runTime.deltaTValue();
+	const scalar DiNum = max(kapparhoCpbyDelta).value()*runTime.deltaTValue();
+	const scalar meanDiNum = average(kapparhoCpbyDelta).value()*runTime.deltaTValue();
 
-    Info<< "Region: " << mesh.name() << " Diffusion Number mean: " << meanDiNum
-        << " max: " << DiNum << endl;
+	Info << "Region: " << mesh.name() << " Diffusion Number mean: " << meanDiNum << " max: " << DiNum << endl;
 
-    return DiNum;
+	return DiNum;
 }
 
-// ************************************************************************* //

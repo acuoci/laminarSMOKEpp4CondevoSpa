@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -73,16 +73,16 @@
 			+ radiation->divq(T)
 			+ Qdissipation
 			+ mixture.sourceExplicit(Y.size()) + fvm::Sp(mixture.sourceImplicit(Y.size()),T)
-			+ Cp*fvOptions(rho, T)
+			+ Cp*fvModels.source(rho, T)
 		);
 
 		TEqn.relax();
 
-		fvOptions.constrain(TEqn);
+		fvConstraints.constrain(TEqn);
 
 		TEqn.solve("T");
 
-		fvOptions.correct(T);
+		fvConstraints.constrain(T);
 
 		Info<< " * T gas min/max (after transport)   = " << min(T).value() << ", " << max(T).value() << endl;
 
@@ -103,16 +103,16 @@
 			==
 			  radiation->divq(T)
                         + Qdissipation
-			+ fvOptions(rho, hs)
+			+ fvModels.source(rho, hs)
 		);
 
 		HEqn.relax();
 
-		fvOptions.constrain(HEqn);
+		fvConstraints.constrain(HEqn);
 
 		HEqn.solve("H");
 
-		fvOptions.correct(hs);
+		fvConstraints.constrain(hs);
 	}
 
 	// Constraints on temperature

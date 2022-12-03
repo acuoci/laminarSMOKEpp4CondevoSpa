@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -56,8 +56,10 @@ PtrList<volScalarField>& hsSpecies = mixture.hsSpecies();
 volScalarField& p = mixture.p();
 volScalarField& hs = mixture.Hs();
 
+
 // Creating density field as the product between p and psi
 Info<< " * Creating density field rho ..." << endl;
+#if STEADYSTATE == 1
 volScalarField rho
 (
     IOobject
@@ -65,13 +67,26 @@ volScalarField rho
         "rho",
         runTime.timeName(),
         mesh,
-        IOobject::NO_READ,
+        IOobject::READ_IF_PRESENT,
         IOobject::AUTO_WRITE
     ),
     mixture.rho()
 );
+#else
+volScalarField rho
+(
+    IOobject
+    (
+        "rho",
+        runTime.timeName(),
+        mesh
+    ),
+    mixture.rho()
+);
+#endif
 
 Info << "   RhoMin = " << min(rho).value() << " RhoMax" << max(rho).value() << endl;
+
 
 // Reading the velocity field
 Info<< " * Reading velocity field U ..." << endl;
@@ -122,21 +137,6 @@ volScalarField Qdissipation
 // Create mass flux field
 #include "compressibleCreatePhi.H"
 
-// Set pressure controls
-#if MULTIREGIONSOLVER == 1
-	#if STEADYSTATE == 1
-	// No pressure control to set
-	#else
-	// No pressure control to set
-	#endif
-#else
-	#if STEADYSTATE == 1
-	pressureControl pressureControl(p, rho, simple.dict());
-	#else
-	pressureControl pressureControl(p, rho, pimple.dict(), false);
-	#endif
-#endif
-
 // Set flux for mesh
 mesh.setFluxRequired(p.name());
 
@@ -176,8 +176,9 @@ dimensionedScalar initialMass = fvc::domainIntegrate(rho);
 // Include multi-reference frame
 #include "createMRF.H"
 
-// Include additional optional fields
-#include "createFvOptions.H"
+// Include additional optional and constraint fields
+#include "createFvModels.H"
+#include "createFvConstraints.H"
 
 // Check for the gravity
 #include "readGravitationalAcceleration.H"

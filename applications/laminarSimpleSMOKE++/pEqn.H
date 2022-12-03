@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -38,18 +38,47 @@
 |                                                                         |
 \*-----------------------------------------------------------------------*/
 
-volScalarField rAU(1.0/UEqn.A());
-surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
+if (simple.consistent())
+{
+    rho = mixture.rho();
+}
+
+const volScalarField rAU("rAU", 1.0/UEqn.A());
+const surfaceScalarField rhorAUf("rhorAUf", fvc::interpolate(rho*rAU));
+
+tmp<volScalarField> rAtU
+(
+    simple.consistent()
+  ? volScalarField::New("rAtU", 1.0/(1.0/rAU - UEqn.H1()))
+  : tmp<volScalarField>(nullptr)
+);
+tmp<surfaceScalarField> rhorAtUf
+(
+    simple.consistent()
+  ? surfaceScalarField::New("rhoRAtUf", fvc::interpolate(rho*rAtU()))
+  : tmp<surfaceScalarField>(nullptr)
+);
+
+const volScalarField& rAAtU = simple.consistent() ? rAtU() : rAU;
+const surfaceScalarField& rhorAAtUf =
+    simple.consistent() ? rhorAtUf() : rhorAUf;
+
 volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p));
+
 tUEqn.clear();
+
+surfaceScalarField phiHbyA
+(
+    "phiHbyA",
+    fvc::interpolate(rho)*fvc::flux(HbyA)
+);
+
+MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
 
 bool closedVolume = false;
 
-surfaceScalarField phiHbyA("phiHbyA", fvc::interpolate(rho)*fvc::flux(HbyA));
-MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
-
 // Update the pressure BCs to ensure flux consistency
-constrainPressure(p, rho, U, phiHbyA, rhorAUf, MRF);
+constrainPressure(p, rho, U, phiHbyA, rhorAAtUf, MRF);
 
 if (simple.transonic())
 {
@@ -61,15 +90,21 @@ if (simple.transonic())
 
     phiHbyA -= fvc::interpolate(psi*p)*phiHbyA/fvc::interpolate(rho);
 
+    if (simple.consistent())
+    {
+        phiHbyA += (rhorAAtUf - rhorAUf)*fvc::snGrad(p)*mesh.magSf();
+        HbyA += (rAAtU - rAU)*fvc::grad(p);
+    }
+
     while (simple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
             fvc::div(phiHbyA)
           + fvm::div(phid, p)
-          - fvm::laplacian(rhorAUf, p)
+          - fvm::laplacian(rhorAAtUf, p)
           ==
-            fvOptions(psi, p, rho.name())
+            fvModels.source(psi, p, rho.name())
         );
 
         // Relax the pressure equation to ensure diagonal-dominance
@@ -77,8 +112,8 @@ if (simple.transonic())
 
         pEqn.setReference
         (
-            pressureControl.refCell(),
-            pressureControl.refValue()
+            pressureReference.refCell(),
+            pressureReference.refValue()
         );
 
         pEqn.solve();
@@ -93,20 +128,26 @@ else
 {
     closedVolume = adjustPhi(phiHbyA, U, p);
 
+    if (simple.consistent())
+    {
+        phiHbyA += (rhorAAtUf - rhorAUf)*fvc::snGrad(p)*mesh.magSf();
+        HbyA += (rAAtU - rAU)*fvc::grad(p);
+    }
+
     while (simple.correctNonOrthogonal())
     {
         fvScalarMatrix pEqn
         (
             fvc::div(phiHbyA)
-          - fvm::laplacian(rhorAUf, p)
+          - fvm::laplacian(rhorAAtUf, p)
           ==
-            fvOptions(psi, p, rho.name())
+            fvModels.source(psi, p, rho.name())
         );
 
         pEqn.setReference
         (
-            pressureControl.refCell(),
-            pressureControl.refValue()
+            pressureReference.refCell(),
+            pressureReference.refValue()
         );
 
         pEqn.solve();
@@ -123,15 +164,15 @@ else
 // Explicitly relax pressure for momentum corrector
 p.relax();
 
-U = HbyA - rAU*fvc::grad(p);
+U = HbyA - rAAtU*fvc::grad(p);
 U.correctBoundaryConditions();
-fvOptions.correct(U);
+fvConstraints.constrain(U);
 
-pressureControl.limit(p);
+fvConstraints.constrain(p);
 
 // For closed-volume cases adjust the pressure and density levels
 // to obey overall mass continuity
-if (closedVolume)
+if (closedVolume && !mixture.incompressible())
 {
     p += (initialMass - fvc::domainIntegrate(psi*p))
         /fvc::domainIntegrate(psi);

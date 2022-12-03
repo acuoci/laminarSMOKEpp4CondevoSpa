@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020 Alberto Cuoci                                       |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -37,6 +37,12 @@
 |   If not, see <http://www.gnu.org/licenses/>.                           |
 |                                                                         |
 \*-----------------------------------------------------------------------*/
+
+// Description
+// Reset the timestep to maintain a constant maximum courant and
+// diffusion Numbers. Reduction of time-step is immediate, but
+// increase is damped to avoid unstable oscillations.
+
 
 if (adjustTimeStep)
 {
@@ -72,4 +78,3 @@ if (adjustTimeStep)
     Info<< "deltaT = " <<  runTime.deltaT().value() << endl;
 }
 
-// ************************************************************************* //

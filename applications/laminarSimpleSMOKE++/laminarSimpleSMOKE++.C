@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -45,10 +45,9 @@
 #include "fvCFD.H"
 #include "multivariateScheme.H"
 #include "simpleControl.H"
-#include "pressureControl.H"
-#include "interpolation.H"
-#include "fvOptions.H"
-#include "fvcSmooth.H"
+#include "pressureReference.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
 
 // Include laminarSMOKE++ classes
 #include "SparkModel.H"
@@ -67,10 +66,10 @@ int main(int argc, char *argv[])
 	#include "createTime.H"
 	#include "createMesh.H"
 	#include "createControl.H"
-	#include "createTimeControls.H"
-	#include "initContinuityErrs.H"
 	#include "createFields.H"
+	#include "createFluidPressureControls.H"
 	#include "createFieldRefs.H"
+	#include "initContinuityErrs.H"
 	
 	Info<< nl << "Starting time loop" << nl << endl;
 
@@ -81,53 +80,54 @@ int main(int argc, char *argv[])
 	 	const double t0 = runTime.value() - runTime.deltaT().value();
 	 	const double tf = runTime.value();
 
+		fvModels.correct();
+
 		// Pressure-velocity SIMPLE corrector
          	{
 			if (mixture.solveForMomentumEquation() == true)
 			{
 		    		#include "UEqn.H"
 
-		    		// Update mixture properties
-		    		mixture.update_properties_for_steady_state();
+				// Thermophysics
+				{
+		    			// Update mixture properties
+		    			mixture.update_properties_for_steady_state();
 
-		    		// Update local Jacobian matrices
-		    		mixture.update_chemical_source_terms();
+		    			// Update local Jacobian matrices
+		    			mixture.update_chemical_source_terms();
 
-		    		// Update fluxes and transport terms in species/energy equations
-		    		mixture.update_transport_terms(mesh, rho);
+		    			// Update fluxes and transport terms in species/energy equations
+		    			mixture.update_transport_terms(mesh, rho);
 
-		    		// Species equations
-		    		#include "YEqn.H"
+		    			// Species equations
+		    			#include "YEqn.H"
 
-		    		// Energy equation
-		    		#include "EEqn.H" 
+		    			// Energy equation
+		    			#include "EEqn.H" 
+				}
 
                     		// Pressure equation
-		    		if (simple.consistent())
-		    		{
-		    			#include "pcEqn.H"
-		    		}
-		    		else
-		    		{
-		        		#include "pEqn.H"
-		    		}
+		        	#include "pEqn.H"
 			}
 			else
 			{
-			    	// Update mixture properties
-			    	mixture.update_properties_for_steady_state();
+				// Thermophysics
+				{
+			    		// Update mixture properties
+			    		mixture.update_properties_for_steady_state();
 
-		    		// Update local Jacobian matrices
-				mixture.update_chemical_source_terms();
+		    			// Update local Jacobian matrices
+					mixture.update_chemical_source_terms();
 
-		    		// Update fluxes and transport terms in species/energy equations
-		   	 	mixture.update_transport_terms(mesh, rho);
+		    			// Update fluxes and transport terms in species/energy equations
+		   	 		mixture.update_transport_terms(mesh, rho);
 
-		    		// Species equations
-		    		#include "YEqn.H"
+		    			// Species equations
+		    			#include "YEqn.H"
 
-		    		// Energy equation
-		    		#include "EEqn.H"  
+		    			// Energy equation
+		    			#include "EEqn.H"  
+				}
 			}
 	    
 			// Passive scalars

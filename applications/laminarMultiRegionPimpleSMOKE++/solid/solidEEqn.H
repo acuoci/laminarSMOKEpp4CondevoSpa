@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -39,32 +39,30 @@
 \*-----------------------------------------------------------------------*/
 
 {
-	{
-    		while (pimple.correctNonOrthogonal())
-    		{
-        		fvScalarMatrix hEqn
-        		(
-            			fvm::ddt(betav*rho, h)
-          			- (
-                			thermo.isotropic()
-              				? fvm::laplacian(betav*thermo.alpha(), h, "laplacian(alpha,h)")
-              				: fvm::laplacian(betav*taniAlpha(), h, "laplacian(alpha,h)")
-            			)
-          			==
-            			fvOptions(rho, h)
-        		);
+	while (pimple.correctNonOrthogonal())
+    	{
+		volScalarField& h = solidThermo.he();
+		solidRho = solidThermo.rho();
 
-        		hEqn.relax();
+		fvScalarMatrix hEqn
+		(
+		  	fvm::ddt(solidRho, h)
+		      - fvm::laplacian(solidThermo.alpha(), h)
+			==
+		 	fvModelsSolid.source(solidRho, h)
+		);
 
-        		fvOptions.constrain(hEqn);
+		hEqn.relax();
 
-        		hEqn.solve();
+		fvConstraintsSolid.constrain(hEqn);
 
-        		fvOptions.correct(h);
-    		}
-	}
+		hEqn.solve();
 
-	thermo.correct();
+		fvConstraintsSolid.constrain(h);
+    	}
 
-	Info<< "Solid min/max T:" << min(thermo.T()).value() << ' ' << max(thermo.T()).value() << endl;
+	solidThermo.correct();
+
+	Info<< "Solid min/max T:" << min(solidThermo.T()).value() << ' ' << max(solidThermo.T()).value() << endl;
 }
+

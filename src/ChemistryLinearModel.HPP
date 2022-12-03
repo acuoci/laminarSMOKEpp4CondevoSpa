@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -121,11 +121,11 @@ void Foam::ChemistryLinearModel::reactionSourceTerms( const Eigen::VectorXd& y, 
 	thermodynamicsMap_.SetPressure(P0);
 
 	// Calculates kinetics
-	#if CHEMKINBASED == 1
-	kineticsMap_.SetTemperature(T);
-	kineticsMap_.SetPressure(P0);	
-	ChemkinFormationRates(NC_, T, P0, omega_.data(), R_.data());
-	#else
+    	#if CHEMKINBASED == 1
+    	kineticsMap_.SetTemperature(T);
+    	kineticsMap_.SetPressure(P0);    
+    	ChemkinFormationRates(NC_, T, P0, omega_.data(), R_.data());
+    	#else
 	// Calculates kinetics
 	kineticsMap_.SetTemperature(T);
 	kineticsMap_.SetPressure(P0);

@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -83,20 +83,8 @@ public:
             const fvPatchFieldMapper&
         );
 
-        //- Copy constructor
-        enthalpyJumpAMIFvPatchScalarField
-        (
-            const enthalpyJumpAMIFvPatchScalarField&
-        );
-
-        //- Construct and return a clone
-        virtual tmp<fvPatchField<scalar>> clone() const
-        {
-            return tmp<fvPatchField<scalar>>
-            (
-                new enthalpyJumpAMIFvPatchScalarField(*this)
-            );
-        }
+	//- Disallow copy without setting internal field reference
+        enthalpyJumpAMIFvPatchScalarField(const enthalpyJumpAMIFvPatchScalarField&) = delete;
 
         //- Copy constructor setting internal field reference
         enthalpyJumpAMIFvPatchScalarField

@@ -1,0 +1,8 @@
+EXE_INC = \
+     $(MKL_SUPPORT) \
+    -I$(EIGEN_LIBRARY_PATH) \
+    -I$(MKL_PATH)/include    
+
+LIB_LIBS = \
+     $(MKL_LIBS)
+

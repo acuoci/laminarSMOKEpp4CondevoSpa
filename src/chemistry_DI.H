@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -40,7 +40,7 @@
 
 void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double t0, const double tf, const fvMesh& mesh, const Foam::volScalarField& rho)
 {
-	if (hmom_ == false && drg_ == false && clustering_ == false && tio2_ == false)
+	if (hmom_ == false && drg_ == false && clustering_ == false && noxPostProcessor_ == false)
 	{
 		//- Initial conditions
 		const double deltat = tf - t0;
@@ -179,7 +179,7 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 
 	}
 
-	else if (hmom_ == false && drg_ == true && clustering_ == false && tio2_ == false)
+	else if (hmom_ == false && drg_ == true && clustering_ == false && noxPostProcessor_ == false)
 	{
 		//- Initial conditions
 		const double deltat = tf - t0;
@@ -377,7 +377,7 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 
 	}
 
-	else if (hmom_ == true && drg_ == false && clustering_ == false && tio2_ == false)
+	else if (hmom_ == true && drg_ == false && clustering_ == false && noxPostProcessor_ == false)
 	{
 		//- Initial conditions
 		const double deltat = tf - t0;
@@ -546,7 +546,7 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 	    	Info<< " * T gas min/max (after chemistry) = " << min(T_).value() << ", " << max(T_).value() << endl;
 	}
 
-	if (hmom_ == false && drg_ == false && clustering_ == true && tio2_ == false)
+	if (hmom_ == false && drg_ == false && clustering_ == true && noxPostProcessor_ == false)
 	{
 		//- Clustering of cells
 		clusteringModel_().Analysis(mesh);		
@@ -844,7 +844,7 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 
 	}
 
-	if (hmom_ == false && drg_ == true && clustering_ == true && tio2_ == false)
+	if (hmom_ == false && drg_ == true && clustering_ == true && noxPostProcessor_ == false)
 	{
 		//- Clustering of cells
 		clusteringModel_().Analysis(mesh);		
@@ -1202,59 +1202,55 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 					counter++;	
 				}
 
-				double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
-			
-			//	Info << "   Max umbalance: " << maxUmbalance << " - Mean umbalance: " << sumUmbalance/double(mesh.nCells()) << endl;
-				Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per cell)" << endl;
-				Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(nclusters)*1000. << " ms per cluster)" << endl;
-			}
-		}
-	
-	    	Info<< " * T gas min/max (after chemistry) = " << min(T_).value() << ", " << max(T_).value() << endl;
+                                double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 
+                        //      Info << "   Max umbalance: " << maxUmbalance << " - Mean umbalance: " << sumUmbalance/double(mesh.nCells()) << endl;
+                                Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per cell)" << endl;
+                                Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(nclusters)*1000. << " ms per cluster)" << endl;
+                        }
+                }
+
+		Info<< " * T gas min/max (after chemistry) = " << min(T_).value() << ", " << max(T_).value() << endl;
 	}
 
-	else if (hmom_ == false && drg_ == false && clustering_ == false && tio2_ == true)
+	else if (noxPostProcessor_ == true)
 	{
 		//- Initial conditions
 		const double deltat = tf - t0;
-		scalarField& TCells = T_.ref();
-		scalarField& pCells = p_.ref();
-		scalarField& QCells = Q_.ref();
+		
 		scalarField& cpuChemistryCells = cpuChemistry_.ref();
 
+		const scalarField& TCells = T_.internalField();
+		const scalarField& pCells = p_.internalField();
 		const scalarField& rhoCells = rho.internalField();
-		const scalarField& cpCells = Cp_.internalField();
-		const scalarField& vCells = mesh.V();
 
-		scalarField& YsCells = tio2Model_().Ys().ref();
-		scalarField& Norm_NCells = tio2Model_().Norm_N().ref();
-		scalarField& SCells = tio2Model_().S().ref();
-		
-		// Umbalances
-		double maxUmbalance = 0.;
-		double sumUmbalance = 0.;
+		scalarField& YNOCells = noxPostProcessorModel_().YNO().ref();
+	//	scalarField& YHCNCells = noxPostProcessorModel_().YHCN().ref();
+	//	scalarField& YNH3Cells = noxPostProcessorModel_().YNH3().ref();
+	//	scalarField& YN2OCells = noxPostProcessorModel_().YN2O().ref();
 
 		// Integration via OpenSMOKE++ solver
 		if (homogeneousReactions_ == true && odeParameterBatchReactorHomogeneous_.type() == OpenSMOKE::ODE_Parameters::ODE_INTEGRATOR_OPENSMOKE)
 		{
-			const unsigned int ntio2  = 3;
-			const unsigned int neqs = (ns_+1) + ntio2;
+			const unsigned int neqs = 1;
 		
 			// Min values
 			Eigen::VectorXd yMin(neqs); 
-			yMin.setConstant(0.);  	yMin(ns_) = Tmin_;	
-			yMin(ns_+1) = 0.;	yMin(ns_+2) = 0.;	yMin(ns_+3) = 0.;
+			yMin.setConstant(0.);
 
 			// Max values
 			Eigen::VectorXd yMax(neqs); 
-			yMax.setConstant(1.);  	yMax(ns_) = Tmax_;	
-			yMax(ns_+1) = 1.e16;	yMax(ns_+2) = 1.;	yMax(ns_+3) = 1.e16;
+			yMax.setConstant(1.); 
 
+			// Mass fractions of rlevant species
+			Eigen::VectorXd omega(6);
+			omega.setZero();
+
+			// Solution vectors
 			Eigen::VectorXd y0(neqs);
 			Eigen::VectorXd yf(neqs);
 
-			Info <<" * Solving homogeneous chemistry (OpenSMOKE++ solver) + TiO2... "<<endl;
+			Info <<" * Solving NOx (OpenSMOKE++ solver)... "<<endl;
 			{			
 				unsigned int counter = 0;
 			
@@ -1267,99 +1263,84 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 					//- Solving for celli:	
 					if (TCells[celli] > direct_integration_minimum_temperature_for_chemistry_)
 					{
-						for(unsigned int i=0;i<ns_;i++)
-							y0(i) = Y_[i].internalField()[celli];
-						y0(ns_)   = TCells[celli];
-						y0(ns_+1) = YsCells[celli];
-						y0(ns_+2) = Norm_NCells[celli];
-						y0(ns_+3) = SCells[celli];
-
-						// Check and normalize the composition
+						// Mass fractions of relevant species
 						{
-							double sum = 0.;
-							for(unsigned int i=0;i<ns_;i++)
-							{
-								if (y0(i) < 0.)	y0(i) = 0.;
-								sum += y0(i);
-							}
-							for(unsigned int i=0;i<ns_;i++)
-								y0(i) /= sum;
+							omega(0) = Y_[noxPostProcessorModel_().index_N2()].internalField()[celli];
+							omega(1) = Y_[noxPostProcessorModel_().index_O2()].internalField()[celli];
+							omega(2) = Y_[noxPostProcessorModel_().index_H2O()].internalField()[celli];
+							omega(3) = Y_[noxPostProcessorModel_().index_Fuel()].internalField()[celli];
+
+							if (noxPostProcessorModel_().index_O() >= 0)
+								omega(4) = Y_[noxPostProcessorModel_().index_O()].internalField()[celli];
+
+							if (noxPostProcessorModel_().index_OH() >= 0)
+								omega(5) = Y_[noxPostProcessorModel_().index_OH()].internalField()[celli];
 						}
+				
+						// Unknowns
+						y0(0) = std::max(YNOCells[celli],0.);
+					//	y0(1) = std::max(YHCNCells[celli],0.);
+					//	y0(2) = std::max(YNH3Cells[celli],0.);
+					//	y0(3) = std::max(YN2OCells[celli],0.);
 
 						//if (constPressureBatchReactor == true)
 						{
+						//	batchReactorHomogeneousConstantPressure_NOxPP_->SetDebug(-1);
+						//	if (TCells[celli] > 1600.)
+						//		batchReactorHomogeneousConstantPressure_NOxPP_->SetDebug(celli);
 							// Set reactor
-							batchReactorHomogeneousConstantPressure_TIO2_->SetReactor(pCells[celli]);
-							batchReactorHomogeneousConstantPressure_TIO2_->SetEnergyEquation(solveForEnergyEquation_);
+							batchReactorHomogeneousConstantPressure_NOxPP_->SetReactor(TCells[celli], pCells[celli], rhoCells[celli]);
+							batchReactorHomogeneousConstantPressure_NOxPP_->SetMassFractions(omega);
 
 							// Turn on integration of chemical step
-							batchReactorHomogeneousConstantPressure_TIO2_->IntegrateTIO2(true);
+							batchReactorHomogeneousConstantPressure_NOxPP_->IntegrateNOxPP(true);
 							
 							// Set variables
 							if (celli == 0)
-							{
-								batchReactorHomogeneousConstantPressure_TIO2_->SetTIO2Options(	tio2Model_().index_TiO2(), tio2Model_().index_TiOH4(), tio2Model_().index_H2O() );
-								batchReactorHomogeneousConstantPressure_TIO2_->SetGaseousFeedback( tio2Model_().is_gaseous_feedback() );
-							}
+								batchReactorHomogeneousConstantPressure_NOxPP_->SetNOxPPOptions( noxPostProcessorModel_().index_OH(), noxPostProcessorModel_().index_O(), 
+																 noxPostProcessorModel_().index_CH(), noxPostProcessorModel_().index_Fuel() );
 
 							// Set initial conditions
-							odeSolverConstantPressure_TIO2_->SetInitialConditions(t0, y0);
+							odeSolverConstantPressure_NOxPP_->SetInitialConditions(t0, y0);
 
 							// Additional ODE solver options
 							if (celli == 0)
 							{
 								// Set linear algebra options
-								odeSolverConstantPressure_TIO2_->SetLinearAlgebraSolver(odeParameterBatchReactorHomogeneous_.linear_algebra());
-								odeSolverConstantPressure_TIO2_->SetFullPivoting(odeParameterBatchReactorHomogeneous_.full_pivoting());
+								odeSolverConstantPressure_NOxPP_->SetLinearAlgebraSolver(odeParameterBatchReactorHomogeneous_.linear_algebra());
+								odeSolverConstantPressure_NOxPP_->SetFullPivoting(odeParameterBatchReactorHomogeneous_.full_pivoting());
 
 								// Set relative and absolute toleransces
-								odeSolverConstantPressure_TIO2_->SetAbsoluteTolerances(odeParameterBatchReactorHomogeneous_.absolute_tolerance());
-								odeSolverConstantPressure_TIO2_->SetRelativeTolerances(odeParameterBatchReactorHomogeneous_.relative_tolerance());
+								odeSolverConstantPressure_NOxPP_->SetAbsoluteTolerances(odeParameterBatchReactorHomogeneous_.absolute_tolerance());
+								odeSolverConstantPressure_NOxPP_->SetRelativeTolerances(odeParameterBatchReactorHomogeneous_.relative_tolerance());
 
 								// Set minimum and maximum values
-								odeSolverConstantPressure_TIO2_->SetMinimumValues(yMin);
-								odeSolverConstantPressure_TIO2_->SetMaximumValues(yMax);
+								odeSolverConstantPressure_NOxPP_->SetMinimumValues(yMin);
+								odeSolverConstantPressure_NOxPP_->SetMaximumValues(yMax);
 							}
 
 							// Solve
-							OdeSMOKE::OdeStatus status = odeSolverConstantPressure_TIO2_->Solve(tf);
+							OdeSMOKE::OdeStatus status = odeSolverConstantPressure_NOxPP_->Solve(tf);
 
 							// Transfer solution
-							odeSolverConstantPressure_TIO2_->Solution(yf);
-					
-							// Fill heat release field
-							QCells[celli] = batchReactorHomogeneousConstantPressure_TIO2_->QR();
+							odeSolverConstantPressure_NOxPP_->Solution(yf);
 						}
 					}		
 					else
 					{
-						for(unsigned int i=0;i<ns_;i++)
-							yf(i) = Y_[i].internalField()[celli];
-						yf(ns_) = TCells[celli];
-						yf(ns_+1) = YsCells[celli];
-						yf(ns_+2) = Norm_NCells[celli];
-						yf(ns_+3) = SCells[celli];
-					}
+						yf(0) = YNOCells[celli];
+					//	yf(1) = YHCNCells[celli];
+					//	yf(2) = YNH3Cells[celli];
+					//	yf(3) = YN2OCells[celli];
 
-					// Check mass fractions and umbalance
-					const double umbalance = normalizeMassFractions(yf, celli);
-					maxUmbalance = std::max(umbalance, maxUmbalance);
-					sumUmbalance += umbalance;
+					}
 
 				//	if (strangAlgorithm != STRANG_COMPACT)
 					{
-						// Assign mass fractions
-						for(int i=0;i<ns_;i++)
-							Y_[i].ref()[celli] = yf(i);
-
-						//- Allocating final values: temperature
-						if (solveForEnergyEquation_ == true)
-							TCells[celli] = yf(ns_);
-
-						// Moments
-						YsCells[celli] = yf(ns_+1);
-						Norm_NCells[celli] = yf(ns_+2);
-						SCells[celli] = yf(ns_+3);
+						YNOCells[celli] = yf(0);
+					//	YHCNCells[celli] = yf(1);
+					//	YNH3Cells[celli] = yf(2);
+					//	YN2OCells[celli] = yf(3);
 					}
 				
 					double tEndLocal = OpenSMOKE::OpenSMOKEGetCpuTime();
@@ -1373,11 +1354,19 @@ void Foam::OpenSMOKEppReactingMixture::chemistry_direct_integration(const double
 
 				double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 			
-				Info << "   Max umbalance: " << maxUmbalance << " - Mean umbalance: " << sumUmbalance/double(mesh.nCells()) << endl;
-				Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per reactor)" << endl;
+				Info << "   NOx chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per reactor)" << endl;
 			}
 		}
+
+//				double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
+			
+			//	Info << "   Max umbalance: " << maxUmbalance << " - Mean umbalance: " << sumUmbalance/double(mesh.nCells()) << endl;
+//				Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per cell)" << endl;
+//				Info << "   Homogeneous chemistry solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(nclusters)*1000. << " ms per cluster)" << endl;
+//			}
+//		}
 	
 	    	Info<< " * T gas min/max (after chemistry) = " << min(T_).value() << ", " << max(T_).value() << endl;
+
 	}
 }

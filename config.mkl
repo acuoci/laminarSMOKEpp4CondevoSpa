@@ -1,7 +1,7 @@
 #Compulsory libraries
 export EIGEN_LIBRARY_PATH=/home/acuoci/Libraries/eigen-3.4.0
-export BOOST_LIBRARY_PATH=/home/acuoci/Libraries/boost/boost-1.65.0
-export OPENSMOKEPP_LIBRARY_PATH=./libs/openSMOKE++4laminarSMOKE++
+export BOOST_LIBRARY_PATH=/home/acuoci/Libraries/boost/boost_1.65.0
+export OPENSMOKEPP_LIBRARY_PATH=/home/acuoci/OpenFOAM/acuoci-9/applications/laminarSMOKEpp4CondevoSpa/libs/openSMOKE++4laminarSMOKE++
 
 #Options: Intel MKL (strongly suggested)
 export MKL_SUPPORT='-DOPENSMOKE_USE_MKL=1'

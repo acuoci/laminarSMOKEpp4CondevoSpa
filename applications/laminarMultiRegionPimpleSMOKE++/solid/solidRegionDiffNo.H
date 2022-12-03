@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -37,6 +37,7 @@
 |   If not, see <http://www.gnu.org/licenses/>.                           |
 |                                                                         |
 \*-----------------------------------------------------------------------*/
+
 // Description
 // Calculates and outputs the mean and maximum Diffusion Numbers for the
 // solid regions

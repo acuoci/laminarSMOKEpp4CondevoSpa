@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -87,15 +87,6 @@ Foam::enthalpyJumpFvPatchScalarField::enthalpyJumpFvPatchScalarField
         evaluate(Pstream::commsTypes::blocking);
     }
 }
-
-
-Foam::enthalpyJumpFvPatchScalarField::enthalpyJumpFvPatchScalarField
-(
-    const enthalpyJumpFvPatchScalarField& ptf
-)
-:
-    fixedJumpFvPatchField<scalar>(ptf)
-{}
 
 
 Foam::enthalpyJumpFvPatchScalarField::enthalpyJumpFvPatchScalarField

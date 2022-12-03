@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -74,7 +74,7 @@ if (mixture.solveForSpeciesEquations() == true)
 					- fvm::laplacian(rho*Dmixi, Yi)
 					==
 					  mixture.sourceExplicit(i) + fvm::Sp(mixture.sourceImplicit(i),Yi)
-					+ fvOptions(rho, Yi)
+					+ fvModels.source(rho, Yi)
 				);
 
 				// Add Soret effect
@@ -86,11 +86,11 @@ if (mixture.solveForSpeciesEquations() == true)
 
 				YiEqn.relax();
 
-				fvOptions.constrain(YiEqn);
+				fvConstraints.constrain(YiEqn);
 
 				YiEqn.solve("Yi");
 
-				fvOptions.correct(Yi);
+				fvConstraints.constrain(Yi);
 
 				Yi.max(0.0);
 				Yt += Yi;
@@ -138,7 +138,7 @@ if (mixture.solveForSpeciesEquations() == true)
 					==
 					- mwDiffusionCorrection[i]
 					+ mixture.sourceExplicit(i) + fvm::Sp(mixture.sourceImplicit(i),Yi)
-					+ fvOptions(rho, Yi)
+					+ fvModels.source(rho, Yi)
 				);
 
 				// Add Soret effect
@@ -150,11 +150,11 @@ if (mixture.solveForSpeciesEquations() == true)
 
 				YiEqn.relax();
 
-				fvOptions.constrain(YiEqn);
+				fvConstraints.constrain(YiEqn);
 
 				YiEqn.solve("Yi");
 
-				fvOptions.correct(Yi);
+				fvConstraints.constrain(Yi);
 
 				Yi.max(0.0);
 				Yt += Yi;

@@ -1,0 +1,46 @@
+EXE_INC = \
+    -w \
+    $(MKL_SUPPORT) \
+    -I. \
+    -I../../src \
+    -I../laminarPimpleSMOKE++/ \
+    -I../../libs/chemkinReducedModels/interface/lnInclude \
+    -I../../libs/radiationModels/lnInclude \
+    -I../../libs/clusteringAlgorithms/lnInclude \
+    -I../../libs/pcaAlgorithms/lnInclude \
+    -I../../libs/noxPostProcessor/lnInclude \
+    -I$(BOOST_LIBRARY_PATH)/include \
+    -I$(EIGEN_LIBRARY_PATH) \
+    -I$(OPENSMOKEPP_LIBRARY_PATH)/source \
+    -I$(MKL_PATH)/include \
+    -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude
+
+EXE_LIBS = \
+    -L$(FOAM_USER_LIBBIN) \
+    -L$(BOOST_LIBRARY_PATH)/lib \
+    -L../../libs/chemkinReducedModels/reducedModel-Template \
+    $(MKL_LIBS) \
+    -ldynamicFvMesh \
+    -ltopoChangerFvMesh \
+    -lsolidThermo \
+    -lfiniteVolume \
+    -lfvModels \
+    -lfvConstraints \
+    -lmeshTools \
+    -lChemkinReducedModels \
+    -lReducedModel-Template \
+    -lradiationModelsOpenSMOKE++ \
+    -lclusteringAlgorithmsOpenSMOKE++ \
+    -lpcaAlgorithmsOpenSMOKE++ \
+    -lnoxPostProcessorOpenSMOKE++ \
+    -lsampling \
+    -lboost_date_time \
+    -lboost_filesystem \
+    -lboost_system \
+    -lboost_regex
+

@@ -1,3 +1,4 @@
+include/pressureControl.C
 fluid/compressibleCourantNo.C
 solid/solidRegionDiffNo.C
 laminarMultiRegionPimpleSMOKE++.C

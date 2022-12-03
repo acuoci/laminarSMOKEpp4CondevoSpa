@@ -1,0 +1,3 @@
+laminarPimpleSMOKE++.chemkinReducedModel.C
+
+EXE = $(FOAM_USER_APPBIN)/laminarPimpleSMOKE++.chemkinReducedModel

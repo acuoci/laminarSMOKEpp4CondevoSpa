@@ -52,7 +52,7 @@
 #include <mach-o/dyld.h>
 #endif
 
-#include "Crypto-SHA256.h"
+//#include "Crypto-SHA256.h"
 
 namespace OpenSMOKE
 {

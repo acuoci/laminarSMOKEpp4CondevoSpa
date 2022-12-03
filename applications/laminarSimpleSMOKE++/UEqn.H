@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -49,18 +49,18 @@ tmp<fvVectorMatrix> tUEqn
 	- fvm::laplacian(mu, U)
 	- fvc::div(mu*dev2(fvc::grad(U)().T()))
 	==
-	fvOptions(rho, U)
+	  fvModels.source(rho, U)
 );
 
 fvVectorMatrix& UEqn = tUEqn.ref();
 
 UEqn.relax();
 
-fvOptions.constrain(UEqn);
+fvConstraints.constrain(UEqn);
 
 solve(UEqn == -fvc::grad(p));
 
-fvOptions.correct(U);
+fvConstraints.constrain(U);
 
 K = 0.5*magSqr(U);
 

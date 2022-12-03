@@ -46,7 +46,9 @@
 #include "multivariateScheme.H"
 #include "pimpleMultiRegionControl.H"
 #include "pressureControl.H"
-#include "fvOptions.H"
+#include "pressureReference.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
 #include "coordinateSystem.H"
 #include "localEulerDdtScheme.H"
 #include "fvcSmooth.H"
@@ -80,20 +82,26 @@ int main(int argc, char *argv[])
 
 	// Create multiple meshes
 	#include "createMeshes.H"
+	fvMesh& mesh = fluidRegions[0];
+	fvMesh& solidMesh = solidRegions[0];
 
 	// Create fields
 	#include "createFields.H"
+
 	#include "createSolidFields.H"
 	#include "createFieldRefs.H"
+	#include "createRhoUfIfPresent.H"
 
 	// Create numerical controls
     	#include "initContinuityErrs.H"
+
     	pimpleMultiRegionControl pimples(fluidRegions, solidRegions);
     	#include "createFluidPressureControls.H"
 
 	// The fluid region is unique
 	pimpleNoLoopControl& pimple = pimples.pimple(0);
 	pressureControl& pressureControl = pressureControlFluid[0];
+	pressureReference pressureReference(p, pimple.dict(), false);
 
     	#include "createTimeControls.H"
    	#include "readSolidTimeControls.H"
@@ -128,6 +136,7 @@ int main(int argc, char *argv[])
         	{
 			if (is_fluid_active == true)
 			{
+
 				// Momentum equations
 				#include "UEqn.H"
 
@@ -156,26 +165,142 @@ int main(int argc, char *argv[])
 				// Pressure corrector loop
 				while (pimple.correct())
 				{
-					if (pimple.consistent())
-					{
-						#include "pcEqn.H"
-					}
-					else
-					{
+				//	if (pimple.consistent())
+				//	{
+				//		#include "pcEqn.H"
+				//	}
+				//	else
+				//	{
 						#include "pEqn.H"
-					}
+				//	}
 				}
+
+			/*
+			if (!pimple.flow())
+            		{
+                		if (pimple.models())
+                		{
+                    			fvModels.correct();
+                		}
+
+                		// Thermophysics
+                		{
+					// Update fluxes and transport terms in species/energy equations
+					mixture.update_transport_terms(mesh, rho);
+
+					// Species equations 
+					#include "YEqn.H"
+
+					// Additional equations (HMOM, etc.)
+					mixture.solve_additional_equations(mesh, rho, phi);
+
+					// Energy equation
+					#include "EEqn.H"
+
+					// Chemical step
+					{
+						const double t0 = runTime.value() - runTime.deltaT().value();
+						const double tf = runTime.value();
+						mixture.chemistry_direct_integration(t0, tf, mesh, rho);
+					}
+
+					// Update mixture properties
+					mixture.update_properties();
+                		}
+			}
+           		else
+			{
+				if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
+                		{		
+                    			// Store momentum to set rhoUf for introduced faces.
+                    			autoPtr<volVectorField> rhoU;
+                    			if (rhoUf.valid())
+                   			{
+                        			rhoU = new volVectorField("rhoU", rho*U);
+                    			}
+
+
+					// No mesh changes
+					
+                    			fvModels.preUpdateMesh();
+
+                    			// Do any mesh changes
+                   	 		mesh.update();
+
+                    			if (mesh.changing())
+                    			{
+                        			MRF.update();
+
+						if (correctPhi)
+						{
+							#include "correctPhi.H"
+						}
+
+						if (checkMeshCourantNo)
+						{
+							#include "meshCourantNo.H"
+						}
+                    			}
+                		}	
+
+               	 		if (pimple.firstPimpleIter() && !pimple.simpleRho())
+                		{
+                    			#include "rhoEqn.H"
+                		}
+
+                		if (pimple.models())
+                		{
+                    			fvModels.correct();
+                		}		
+
+
+				// Momentum equations
+				#include "UEqn.H"
+
+				// Thermophysics
+				{
+
+					// Update fluxes and transport terms in species/energy equations
+					mixture.update_transport_terms(mesh, rho);
+
+					// Species equations 
+					#include "YEqn.H"
+
+					// Additional equations (HMOM, etc.)
+					mixture.solve_additional_equations(mesh, rho, phi);
+
+					// Energy equation
+					#include "EEqn.H"
+
+					// Chemical step
+					{
+						const double t0 = runTime.value() - runTime.deltaT().value();
+						const double tf = runTime.value();
+						mixture.chemistry_direct_integration(t0, tf, mesh, rho);
+					}
+
+					// Update mixture properties
+					mixture.update_properties();
+				}
+
+				// --- Pressure corrector loop
+                		while (pimple.correct())
+                		{
+                    			#include "pEqn.H"
+                		}
+			}*/
+
 			}
 
 			
 			if (is_solid_active == true)
 			{
-				forAll(solidRegions, i)
+			//	forAll(solidRegions, i)
             			{
-                			Info<< "\nSolving for solid region " << solidRegions[i].name() << endl;
+                	//		Info<< "\nSolving for solid region " << solidRegions[i].name() << endl;
 
 					// To solve the solid energy equation
-                			#include "setRegionSolidFields.H"
+                	//		#include "setRegionSolidFields.H"
                 			#include "solidEEqn.H"
             			}
 			}

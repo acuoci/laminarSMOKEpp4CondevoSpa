@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020-2022 Alberto Cuoci                                  |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -52,15 +52,7 @@
 #include "patches/mixedEnthalpy/mixedEnthalpyFvPatchScalarField.H"
 #include "patches/enthalpyJump/enthalpyJumpFvPatchScalarField.H"
 #include "patches/enthalpyJumpAMI/enthalpyJumpAMIFvPatchScalarField.H"
-
-// Customized boundary conditions for multiregion solvers (only for OF>=8)
-#if MULTIREGIONSOLVER == 1
-#if WM_PROJECT_VERSION >= 8
-#include "patches/temperatureCoupledBaseOpenSMOKEpp/temperatureCoupledBaseOpenSMOKEpp.H"
-#include "patches/externalWallHeatFluxTemperatureOpenSMOKEpp/externalWallHeatFluxTemperatureOpenSMOKEppFvPatchScalarField.H"
-#include "patches/turbulentTemperatureCoupledBaffleMixedOpenSMOKEpp/turbulentTemperatureCoupledBaffleMixedOpenSMOKEppFvPatchScalarField.H"
-#endif
-#endif
+#include "patches/temperatureCoupledBase/temperatureCoupledBase.H"
 
 // Default name of main dictionary
 const Foam::word Foam::OpenSMOKEppReactingMixture::dictName("SimulationOptions");
@@ -388,9 +380,11 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 
 	clustering_(lookupOrDefault<Switch>("Clustering", false)),
 
-	repairing_(lookupOrDefault<Switch>("RepairSolution", false)),
+	pca_(lookupOrDefault<Switch>("PCA", false)),
 
-	tio2_(lookupOrDefault<Switch>("TiO2", false))
+	noxPostProcessor_(lookupOrDefault<Switch>("NOxPostProcessor", false)),
+
+	viscositySutherlandLaw_(lookupOrDefault<Switch>("viscositySutherlandLaw", false))
 
 {
 	// Energy equation formulation
@@ -484,6 +478,13 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 			drgModel_().Setup(mesh);
 		}
 
+		//- PCA
+		if (pca_ == true)
+		{
+			pcaModel_.reset( new PCA(mesh) );
+			pcaModel_().Setup(mesh, *thermodynamicsMap_);
+		}
+
 		//- Clustering Model
 		if (clustering_ == true)
 		{
@@ -491,19 +492,12 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 		//	clusteringModel_().Setup(mesh);
 		}
 
-		//- Repairing Model
-		if (repairing_ == true)
-		{
-			repairingModel_.reset( new Repairing(mesh) );
-			repairingModel_().Setup(thermodynamicsMap_->NamesOfSpecies());
-		}
-
-		//- TiO2 Model
-		if (tio2_ == true)
-		{
-			tio2Model_.reset( new TiO2(mesh, *thermodynamicsMap_, *kineticsMap_) );
-			tio2Model_().Setup(mesh);
-		}
+		//- NOx post-processor Model
+                if (noxPostProcessor_ == true)
+                {
+                       noxPostProcessorModel_.reset( new NOxPostProcessor(mesh, *thermodynamicsMap_, *kineticsMap_) );
+                       noxPostProcessorModel_().Setup(mesh);
+                }
 
 		//- Chemistry Linear Model
 		#if STEADYSTATE == 1
@@ -1013,7 +1007,7 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 	}
 	
 	// Allocate memory for chemistry
-	if (homogeneousReactions_ == true && hmom_ == false && drg_ == false && tio2_ == false)
+	if (homogeneousReactions_ == true && hmom_ == false && drg_ == false && noxPostProcessor_ == false)
 	{
 		// Batch reactor homogeneous
 		batchReactorHomogeneousConstantPressure_ = new BatchReactorHomogeneousConstantPressure(*thermodynamicsMap_, *kineticsMap_);
@@ -1031,7 +1025,7 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 		}
 		#endif
 	}
-	else if (homogeneousReactions_ == true && hmom_ == false && drg_ == true && tio2_ == false)
+	else if (homogeneousReactions_ == true && hmom_ == false && drg_ == true && noxPostProcessor_ == false)
 	{
 		// Batch reactor homogeneous
 		batchReactorHomogeneousConstantPressure_DRG_ = new BatchReactorHomogeneousConstantPressure_DRG( *thermodynamicsMap_, *kineticsMap_ );
@@ -1049,7 +1043,7 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 		}
 		#endif
 	}
-	else if (homogeneousReactions_ == true && hmom_ == true && drg_ == false && tio2_ == false)
+	else if (homogeneousReactions_ == true && hmom_ == true && drg_ == false && noxPostProcessor_ == false)
 	{
 		// Batch reactor homogeneous
 		batchReactorHomogeneousConstantPressure_HMOM_ = new BatchReactorHomogeneousConstantPressure_HMOM(*thermodynamicsMap_, *kineticsMap_, hmomModel_().hmomAnalyzer());
@@ -1067,24 +1061,24 @@ Foam::OpenSMOKEppReactingMixture::OpenSMOKEppReactingMixture(const fvMesh& mesh)
 		}
 		#endif
 	}
-	else if (homogeneousReactions_ == true && hmom_ == false && drg_ == false && tio2_ == true)
-	{
-		// Batch reactor homogeneous
-		batchReactorHomogeneousConstantPressure_TIO2_ = new BatchReactorHomogeneousConstantPressure_TIO2(*thermodynamicsMap_, *kineticsMap_, tio2Model_().tio2Model());
+        else if (noxPostProcessor_ == true)
+        {
+                // Batch reactor homogeneous
+                batchReactorHomogeneousConstantPressure_NOxPP_ = new BatchReactorHomogeneousConstantPressure_NOxPP(*thermodynamicsMap_, *kineticsMap_, noxPostProcessorModel_().NOxPostProcessorModel());
 
-		// ODE Solver (constant pressure)
-		odeSolverConstantPressure_TIO2_ = new OdeSMOKE::MultiValueSolver<methodGearConstantPressure_TIO2>;
-		odeSolverConstantPressure_TIO2_->SetReactor(batchReactorHomogeneousConstantPressure_TIO2_);
+                // ODE Solver (constant pressure)
+                odeSolverConstantPressure_NOxPP_ = new OdeSMOKE::MultiValueSolver<methodGearConstantPressure_NOxPP>;
+                odeSolverConstantPressure_NOxPP_->SetReactor(batchReactorHomogeneousConstantPressure_NOxPP_);
 
-		// ODE solver (constant pressure, SUNDIALS CVODE)
-		#if OPENSMOKE_USE_SUNDIALS == 1
-		if (odeParameterBatchReactorHomogeneous.type() == OpenSMOKE::ODE_Parameters::ODE_INTEGRATOR_CVODE)
-		{
-			cvodeSolverConstantPressure_TIO2_ = OpenSMOKE::BatchReactorHomogeneousConstantPressure_TIO2_ODE_CVODE::GetInstance();
-			cvodeSolverConstantPressure_TIO2_->SetBatchReactorHomogeneousConstantPressure(&batchReactorHomogeneousConstantPressure_TIO2_);
-		}
-		#endif
-	}
+                // ODE solver (constant pressure, SUNDIALS CVODE)
+                #if OPENSMOKE_USE_SUNDIALS == 1
+                if (odeParameterBatchReactorHomogeneous.type() == OpenSMOKE::ODE_Parameters::ODE_INTEGRATOR_CVODE)
+                {
+                        cvodeSolverConstantPressure_NOxPP_ = OpenSMOKE::BatchReactorHomogeneousConstantPressure_NOxPP_ODE_CVODE::GetInstance();
+                        cvodeSolverConstantPressure_NOxPP_->SetBatchReactorHomogeneousConstantPressure(&batchReactorHomogeneousConstantPressure_NOxPP_);
+                }
+                #endif
+        }
 
 
 	/*
@@ -1430,7 +1424,10 @@ void Foam::OpenSMOKEppReactingMixture::calculate()
 
 		// Calculate the viscosity [kg/m/s]
 		{
-			muCells[celli] = transportMap_->DynamicViscosity(mole_fractions.data());
+			if (viscositySutherlandLaw_ == true)
+				muCells[celli] = 1.512041288e-6 * (TCells[celli] * std::sqrt(TCells[celli])) / (TCells[celli] + 120.);
+			else
+				muCells[celli] = transportMap_->DynamicViscosity(mole_fractions.data());
 		}
 
 		// Calculate the thermal conductivity [W/m/K]
@@ -1584,7 +1581,10 @@ void Foam::OpenSMOKEppReactingMixture::calculate()
 							
 				// Calculate the viscosity [kg/m/s]
 				{
-					pmu[facei] = transportMap_->DynamicViscosity(mole_fractions.data());
+					if (viscositySutherlandLaw_ == true)
+						pmu[facei] = 1.512041288e-6 * (pT[facei] * std::sqrt(pT[facei])) / (pT[facei] + 120.);
+					else
+						pmu[facei] = transportMap_->DynamicViscosity(mole_fractions.data());
 				}
 					
 				// Calculate the thermal conductivity [W/m/K]
@@ -1655,10 +1655,10 @@ void Foam::OpenSMOKEppReactingMixture::calculate()
 		hmomModel_().UpdateProperties(p_, T_);
 	}
 
-	// Update properties for DRG Model
-	if (drg_ == true)
+	// Update properties for PCA Model
+	if (pca_ == true)
 	{
-		// nothing to do
+		pcaModel_().Analysis(T_, Y_);
 	}
 
 	// Update properties for Clustering Model
@@ -1667,18 +1667,19 @@ void Foam::OpenSMOKEppReactingMixture::calculate()
 		// nothing to do
 	}
 
-	// Update properties for Repairing Model
-	if (repairing_ == true)
+	// Update properties for DRG Model
+	if (drg_ == true)
 	{
 		// nothing to do
 	}
 
-	// Update properties for TiO2 Model
-	if (tio2_ == true)
-	{
-		const volScalarField rho = this->cTot_*this->MW_;
-		tio2Model_().UpdateProperties(p_, T_, rho, mu_);
-	}
+        // Update properties for NOx post-processor Model
+        if (noxPostProcessor_ == true)
+        {
+                const volScalarField rho = this->cTot_*this->MW_;
+                noxPostProcessorModel_().UpdateProperties(p_, T_, rho, Dmix_);
+        }
+
 
 	double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
 
@@ -1967,29 +1968,13 @@ void Foam::OpenSMOKEppReactingMixture::init()
 	// Non-const fields
 	scalarField& hsCells = this->Hs_.primitiveFieldRef();
 
-	// Repairing solution
-	if (repairing_ == true)
-	{
-		repairingModel_().RepairMassFractions(this->T_.mesh(), Y_);
-		repairingModel_().RepairMinMaxFields(this->T_.mesh());
-		repairingModel_().RepairPatch(this->T_.mesh(), Y_);
-	//	repairingModel_().RepairVelocity(this->T_.mesh());
-	}
-
 	// Loop over all the internal cells
-	Info << "   Internal cells... " << endl;
-	Info << "    - Min/Max T: " << min(this->T_).value() << "/" << max(this->T_).value() << endl;
-	Info << "    - Min/Max p: " << min(this->p_).value() << "/" << max(this->p_).value() << endl;
-	for(int i=0;i<ns_;++i)
-		Info << "    - Min/Max " << thermodynamicsMap_->NamesOfSpecies()[i] << ": " << min(Y_[i]).value() << "/" << max(Y_[i]).value() << endl;
-
 	forAll(TCells, celli)
 	{			
 		// Calculate the mole fractions from the mass fractions
 		double mw = 0.;
 		for(int i=0;i<ns_;++i)
-			mass_fractions(i) = std::max(0., Y_[i].internalField()[celli]);
-		
+			mass_fractions(i) = Y_[i].internalField()[celli];
 		thermodynamicsMap_->MoleFractions_From_MassFractions(mole_fractions.data(), mw, mass_fractions.data());
 
 		// Set temperature and pressure for thermodynamic and transport maps
@@ -2009,8 +1994,6 @@ void Foam::OpenSMOKEppReactingMixture::init()
 
 		forAll(this->T_.boundaryField(), patchi)
 		{
-			Info << "   Patch field: " << T_.mesh().boundary()[patchi].name() << endl;
-
 			fvPatchScalarField& pp = pBf[patchi];
 			fvPatchScalarField& pT = TBf[patchi];
 			fvPatchScalarField& phs = hsBf[patchi];
@@ -2199,7 +2182,8 @@ void Foam::OpenSMOKEppReactingMixture::update_chemical_source_terms()
 			{
 				const scalarField& TCells = T_.internalField();
 				const scalarField& pCells = p_.internalField(); 
-	
+				scalarField& QCells = Q_.ref();
+
 				Eigen::VectorXd source(ns_+1);	
 				Eigen::VectorXd y(ns_+1);
 
@@ -2216,6 +2200,9 @@ void Foam::OpenSMOKEppReactingMixture::update_chemical_source_terms()
 		
 					for(int i=0;i<ns_+1;i++)
 						sourceExplicit_[i].ref()[celli] = source(i);
+	
+					// Heat release rate (W/m3)
+					QCells[celli] = source(ns_);
 				}
 			}
 			double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
@@ -2291,7 +2278,7 @@ void Foam::OpenSMOKEppReactingMixture::onthefly_postprocessing(const fvMesh& mes
 		hmomModel_().FieldsReconstruction(mesh, p_, T_);
 	}
 
-	if (drg_ == true)
+	if (pca_ == true)
 	{
 		// nothing to do
 	}
@@ -2301,16 +2288,16 @@ void Foam::OpenSMOKEppReactingMixture::onthefly_postprocessing(const fvMesh& mes
 		// nothing to do
 	}
 
-	if (repairing_ == true)
+	if (drg_ == true)
 	{
 		// nothing to do
 	}
 
-	if (tio2_ == true)
-	{
-		tio2Model_().OnTheFlyAnalysis(mesh, rho, Y_);
-		tio2Model_().FieldsReconstruction(mesh, rho, T_);
-	}
+        if (noxPostProcessor_ == true)
+        {
+                noxPostProcessorModel_().OnTheFlyAnalysis(mesh, rho, Y_);
+                noxPostProcessorModel_().FieldsReconstruction(mesh, rho, p_, T_, Y_);
+        }
 }
 
 void Foam::OpenSMOKEppReactingMixture::solve_additional_equations(const fvMesh& mesh, const Foam::volScalarField& rho, const surfaceScalarField& phi)
@@ -2325,7 +2312,7 @@ void Foam::OpenSMOKEppReactingMixture::solve_additional_equations(const fvMesh& 
 		hmomModel_().SolveEquations(mesh, p_, T_, phi, rho, mu_, thermophoretic_effect_);
 	}
 
-	if (drg_ == true)
+	if (pca_ == true)
 	{
 		// nothing to do
 	}
@@ -2335,15 +2322,15 @@ void Foam::OpenSMOKEppReactingMixture::solve_additional_equations(const fvMesh& 
 		// nothing to do
 	}
 
-	if (repairing_ == true)
+	if (drg_ == true)
 	{
 		// nothing to do
 	}
 
-	if (tio2_ == true)
-	{
-		tio2Model_().SolveEquations(mesh, p_, T_, phi, rho, mu_);
-	}
+        if (noxPostProcessor_ == true)
+        {
+                noxPostProcessorModel_().SolveEquations(mesh, p_, T_, phi, rho, Y_);
+        }
 }
 
 #include "chemistry_DI.H"

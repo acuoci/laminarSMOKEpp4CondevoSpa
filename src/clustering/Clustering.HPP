@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -181,10 +181,19 @@ void Foam::Clustering::Analysis(const Foam::fvMesh& mesh)
 		
 		for(unsigned int i=0;i<D_;i++)
 		{
+			
 			std::vector<double> psi(mesh.nCells());
 			const volScalarField& field = mesh.lookupObject<volScalarField>(fields_[i]);
 			forAll(field, celli)
 				psi[celli] = field[celli];
+
+			// Normalization is automatically performed
+			/*
+			const double minPsi = min(field).value();
+			if (minPsi < 0.)
+				std::transform(psi.begin(), psi.end(), psi.begin(), std::bind2nd( std::plus<double>(), -minPsi ) );
+			*/
+
 			dmz.SetData(i, psi, epsilons_[i], epsilons_rel_[i]);
 		}
 
@@ -208,6 +217,14 @@ void Foam::Clustering::Analysis(const Foam::fvMesh& mesh)
 			const volScalarField& field = mesh.lookupObject<volScalarField>(fields_[i]);
 			forAll(field, celli)
 				psi[celli] = field[celli];
+			
+			// Normalization is automatically performed
+			/*
+			const double minPsi = min(field).value();
+			if (minPsi < 0.)
+				std::transform(psi.begin(), psi.end(), psi.begin(), std::bind2nd( std::plus<double>(), -minPsi ) );
+			*/
+
 			binning.SetData(i, psi, epsilons_[i], epsilons_rel_[i]);
 		}
 

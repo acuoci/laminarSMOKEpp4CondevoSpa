@@ -1,0 +1,4 @@
+laminarMultiRegionSimpleSMOKE++chemkinReducedModel.C
+
+EXE = $(FOAM_USER_APPBIN)/laminarMultiRegionSimpleSMOKE++chemkinReducedModel
+

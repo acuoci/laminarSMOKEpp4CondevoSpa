@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2022 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -40,39 +40,32 @@
 
 scalar DiNum = -great;
 
-forAll(solidRegions, i)
 {
-    // Note: do not use setRegionSolidFields.H to avoid double registering Cp
-    //#include "setRegionSolidFields.H"
-    const solidThermo& thermo = thermos[i];
+        tmp<volScalarField> magKappa;
+        if (solidThermo.isotropic())
+        {
+        	magKappa =  solidThermo.kappa();
+    	}
+    	else
+    	{
+        	magKappa = mag(solidThermo.Kappa());
+    	}
 
-    tmp<volScalarField> magKappa;
-    if (thermo.isotropic())
-    {
-        magKappa = thermo.kappa();
-    }
-    else
-    {
-        magKappa = mag(thermo.Kappa());
-    }
+	tmp<volScalarField> tcp = solidThermo.Cp();
+	const volScalarField& cp = tcp();
 
-    tmp<volScalarField> tcp = thermo.Cp();
-    const volScalarField& cp = tcp();
+	tmp<volScalarField> trho = solidThermo.rho();
+	const volScalarField& rho = trho();
 
-    tmp<volScalarField> trho = thermo.rho();
-    const volScalarField& rho = trho();
-
-    DiNum = max
-    (
-        solidRegionDiffNo
-        (
-            solidRegions[i],
-            runTime,
-            rho*cp,
-            magKappa()
-        ),
-        DiNum
-    );
-
+        DiNum = max
+    	(
+        	solidRegionDiffNo
+        	(
+            		solidMesh,
+            		runTime,
+            		rho*cp,
+            		magKappa()
+        	),
+        	DiNum
+    	);
 }
-

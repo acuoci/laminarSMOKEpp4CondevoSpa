@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -53,6 +53,9 @@ tmp<fv::convectionScheme<scalar> > mvConvectionCorrection
 // Governing equation in case the diffusion fluxes are written as j=-rho*Dmixi*nabla(Yi)
 if (mixture.diffusion_via_mole_fraction_gradient() == false)
 {
+	const double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
+
+
 	volScalarField Yt(0.0*Y[0]);
 
 	forAll(Y, i)
@@ -69,7 +72,7 @@ if (mixture.diffusion_via_mole_fraction_gradient() == false)
 				+ mvConvectionCorrection->fvmDiv(phic, Yi)
 				- fvm::laplacian(rho*Dmixi, Yi)
 				==
-				fvOptions(rho, Yi)
+				  fvModels.source(rho, Yi)
 			);
 
 			// Add Soret effect
@@ -81,16 +84,21 @@ if (mixture.diffusion_via_mole_fraction_gradient() == false)
 
 			YiEqn.relax();
 
-			fvOptions.constrain(YiEqn);
+			fvConstraints.constrain(YiEqn);
 
 			YiEqn.solve("Yi");
 
-			fvOptions.correct(Yi);
+			fvConstraints.constrain(Yi);
 
 			Yi.max(0.0);
 			Yt += Yi;
 		}
 	}
+
+	const double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
+
+	Info << "   Species transport equations solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per reactor)" << endl;
+
 
 	if (mixture.closure_on_inert() == true)
 	{
@@ -113,6 +121,9 @@ if (mixture.diffusion_via_mole_fraction_gradient() == false)
 // Governing equation in case the diffusion fluxes are written as j=-rho*(Wi/W)*Dmixi*nabla(Xi)
 else
 {
+	const double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
+
+
 	volScalarField Yt(0.0*Y[0]);
 
 	forAll(Y, i)
@@ -131,7 +142,7 @@ else
 				- fvm::laplacian(rho*Dmixi-rho*Dmixi*MW*Yi/MWi, Yi)
 				==
 				- mwDiffusionCorrection[i]
-				+ fvOptions(rho, Yi)
+				+ fvModels.source(rho, Yi)
 			);
 
 			// Add Soret effect
@@ -143,16 +154,21 @@ else
 
 			YiEqn.relax();
 
-			fvOptions.constrain(YiEqn);
+			fvConstraints.constrain(YiEqn);
 
 			YiEqn.solve("Yi");
 
-			fvOptions.correct(Yi);
+			fvConstraints.constrain(Yi);
 
 			Yi.max(0.0);
 			Yt += Yi;
 		}
 	}
+
+	const double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
+
+	Info << "   Species transport equations solved in " << tEnd - tStart << " s  (" << (tEnd-tStart)/double(mesh.nCells())*1000. << " ms per reactor)" << endl;
+
 
 	if (mixture.closure_on_inert() == true)
 	{

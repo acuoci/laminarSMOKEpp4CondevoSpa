@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -40,10 +40,13 @@
 
 // Include standard OpenFOAM classes
 #include "fvCFD.H"
+#include "dynamicFvMesh.H"
 #include "multivariateScheme.H"
 #include "pimpleControl.H"
-#include "pressureControl.H"
-#include "fvOptions.H"
+#include "pressureReference.H"
+#include "CorrectPhi.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
 #include "fvcSmooth.H"
 
 // Include laminarSMOKE++ classes
@@ -61,71 +64,158 @@ int main(int argc, char *argv[])
 
 	#include "setRootCaseLists.H"
 	#include "createTime.H"
-	#include "createMesh.H"
-	#include "createControl.H"
-	#include "createTimeControls.H"
+        #include "createDynamicFvMesh.H"
+        #include "createDyMControls.H"
 	#include "initContinuityErrs.H"
 	#include "createFields.H"
+	#include "createFluidPressureControls.H"
 	#include "createFieldRefs.H"
-	#include "compressibleCourantNo.H"
-	#include "setInitialDeltaT.H"
+        #include "createRhoUfIfPresent.H"
+        #include "compressibleCourantNo.H"
+        #include "setInitialDeltaT.H"
 
-	
+	// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
 	Info<< nl << "Starting time loop" << nl << endl;
 
 	while (pimple.run(runTime))
 	{
 		// Set the time step 
-		#include "readTimeControls.H"
-		#include "compressibleCourantNo.H"
-		#include "setDeltaT.H"
+		#include "readDyMControls.H"
+
+        	// Store divrhoU from the previous mesh so that it can be mapped
+        	// and used in correctPhi to ensure the corrected phi has the
+        	// same divergence
+       	 	autoPtr<volScalarField> divrhoU;
+        	if (correctPhi)
+		{
+            		divrhoU = new volScalarField
+            		(
+                		"divrhoU",
+                		fvc::div(fvc::absolute(phi, rho, U))
+            		);
+       	 	}
+
+            	#include "compressibleCourantNo.H"
+            	#include "setDeltaT.H"
+
 
 		// Advance in time
 		runTime++;
 		Info<< "Time = " << runTime.timeName() << nl << endl;
 
-		// Solve the continuity equation for density
-		#include "rhoEqn.H"
-
 		// PIMPLE loop
 		while (pimple.loop())
 		{
-			// Momentum equations
-			#include "UEqn.H"
+			if (!pimple.flow())
+            		{
+                		if (pimple.models())
+                		{
+                    			fvModels.correct();
+                		}
 
-			// Update fluxes and transport terms in species/energy equations
-			mixture.update_transport_terms(mesh, rho);
+                		// Thermophysics
+                		{
+					// Update fluxes and transport terms in species/energy equations
+					mixture.update_transport_terms(mesh, rho);
 
-			// Species equations 
-			#include "YEqn.H"
+					// Species equations 
+					#include "YEqn.H"
 
-			// Additional equations (HMOM, etc.)
-			mixture.solve_additional_equations(mesh, rho, phi);
+					// Additional equations (HMOM, etc.)
+					mixture.solve_additional_equations(mesh, rho, phi);
 
-			// Energy equation
-			#include "EEqn.H"
+					// Energy equation
+					#include "EEqn.H"
 
-			// Chemical step
-			{
-				const double t0 = runTime.value() - runTime.deltaT().value();
-				const double tf = runTime.value();
-				mixture.chemistry_direct_integration(t0, tf, mesh, rho);
+					// Chemical step
+					{
+						const double t0 = runTime.value() - runTime.deltaT().value();
+						const double tf = runTime.value();
+						mixture.chemistry_direct_integration(t0, tf, mesh, rho);
+					}
+
+					// Update mixture properties
+					mixture.update_properties();
+                		}
 			}
-
-			// Update mixture properties
-			mixture.update_properties();
-
-			// Pressure corrector loop
-			while (pimple.correct())
+           		else
 			{
-				if (pimple.consistent())
+				if (pimple.firstPimpleIter() || moveMeshOuterCorrectors)
+                		{		
+                    			// Store momentum to set rhoUf for introduced faces.
+                    			autoPtr<volVectorField> rhoU;
+                    			if (rhoUf.valid())
+                   			{
+                        			rhoU = new volVectorField("rhoU", rho*U);
+                    			}
+
+                    			fvModels.preUpdateMesh();
+
+                    			// Do any mesh changes
+                   	 		mesh.update();
+
+                    			if (mesh.changing())
+                    			{
+                        			MRF.update();
+
+						if (correctPhi)
+						{
+							#include "correctPhi.H"
+						}
+
+						if (checkMeshCourantNo)
+						{
+							#include "meshCourantNo.H"
+						}
+                    			}
+                		}	
+
+               	 		if (pimple.firstPimpleIter() && !pimple.simpleRho())
+                		{
+                    			#include "rhoEqn.H"
+                		}
+
+                		if (pimple.models())
+                		{
+                    			fvModels.correct();
+                		}		
+
+
+				// Momentum equations
+				#include "UEqn.H"
+
+				// Thermophysics
 				{
-					#include "pcEqn.H"
+
+					// Update fluxes and transport terms in species/energy equations
+					mixture.update_transport_terms(mesh, rho);
+
+					// Species equations 
+					#include "YEqn.H"
+
+					// Additional equations (HMOM, etc.)
+					mixture.solve_additional_equations(mesh, rho, phi);
+
+					// Energy equation
+					#include "EEqn.H"
+
+					// Chemical step
+					{
+						const double t0 = runTime.value() - runTime.deltaT().value();
+						const double tf = runTime.value();
+						mixture.chemistry_direct_integration(t0, tf, mesh, rho);
+					}
+
+					// Update mixture properties
+					mixture.update_properties();
 				}
-				else
-				{
-					#include "pEqn.H"
-				}
+
+				// --- Pressure corrector loop
+                		while (pimple.correct())
+                		{
+                    			#include "pEqn.H"
+                		}
 			}
 		}
 

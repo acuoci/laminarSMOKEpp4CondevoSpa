@@ -21,7 +21,7 @@
 |                                                                         |
 |   License                                                               |
 |                                                                         |
-|   Copyright(C) 2020 Alberto Cuoci                                       |
+|   Copyright(C) 2020, 2021 Alberto Cuoci                                 |
 |   laminarSMOKE++ is free software: you can redistribute it and/or       |
 |   modify it under the terms of the GNU General Public License           |
 |   as published by the Free Software Foundation, either version 3 of     |
@@ -80,10 +80,10 @@ volScalarField& T = mixture.T();
 IOobject::readOption  tauReadOption = IOobject::NO_READ;
 IOobject::writeOption tauWriteOption = IOobject::NO_WRITE;
 
-
 // Residence time (options)
 if (mixture.solveForTauEquation() == true)
 {
+	Info << "Activating tau (residence time) equation" << endl;
 	tauReadOption = IOobject::MUST_READ;
 	tauWriteOption = IOobject::AUTO_WRITE;
 }
@@ -100,7 +100,8 @@ volScalarField tau
 		tauReadOption,
 		tauWriteOption
 	),
-	mesh
+	mesh,
+	dimensionedScalar( "tau", dimTime, 0. )
 );
 
 // Passive scalar (options)
@@ -109,6 +110,7 @@ IOobject::writeOption csiWriteOption = IOobject::NO_WRITE;
 
 if (mixture.solveForCsiEquation() == true)
 {
+	Info << "Activating passive scalar csi equation" << endl;
 	csiReadOption = IOobject::MUST_READ;
 	csiWriteOption = IOobject::AUTO_WRITE;
 }
@@ -126,7 +128,8 @@ volScalarField csi
 		csiReadOption,
 		csiWriteOption
 	),
-	mesh
+	mesh,
+	dimensionedScalar( "csi", dimless, 0. )
 );
 
 // Create the reacting mixture object as interface with the radiation model
