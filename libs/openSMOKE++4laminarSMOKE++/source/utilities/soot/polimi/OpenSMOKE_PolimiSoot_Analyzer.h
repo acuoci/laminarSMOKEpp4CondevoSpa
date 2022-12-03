@@ -673,7 +673,7 @@ namespace OpenSMOKE
 
 		bool formation_rates_by_classes() const { return formation_rates_by_classes_;  }
 
-	private:
+	public:
 
 		/**
 		*@brief Calculates soot diameters (dmean = d^a/d^b)

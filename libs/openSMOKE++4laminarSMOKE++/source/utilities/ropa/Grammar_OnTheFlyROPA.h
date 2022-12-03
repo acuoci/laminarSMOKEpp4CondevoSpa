@@ -98,6 +98,11 @@ namespace OpenSMOKE
 																OpenSMOKE::SINGLE_BOOL,
 																"Only species whose amount is larger than a minimum threshold are written on the output file (default: true)",
 																false));
+
+			AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@WriteXML",
+																OpenSMOKE::SINGLE_BOOL,
+																"Write the ROPA results also in a xml file (default: false)",
+																false));
 		}
 	};
 }

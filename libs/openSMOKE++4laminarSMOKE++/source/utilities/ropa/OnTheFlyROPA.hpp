@@ -38,6 +38,12 @@
 
 namespace OpenSMOKE
 {
+	template<class T>
+	std::string FormatXMLSingleVariable(const std::string label, const T value)
+	{
+		return "<" + label + ">" + boost::lexical_cast<std::string>(value) + "</" + label + ">\n";
+	}
+
 	void ReorderROPACoefficients(const std::vector<unsigned int>& positive_indices, const std::vector<unsigned int>& negative_indices,
 		const std::vector<double>& positive_coefficients, const std::vector<double>& negative_coefficients,
 		std::vector<int>& reordered_positive_indices, std::vector<double>& reordered_positive_coefficients,
@@ -62,6 +68,10 @@ namespace OpenSMOKE
 		next_step_ = number_steps_;
 		next_index_conversion_ = 0;
 		next_index_time_ = 0;
+		current_step_ = 0;
+		told_ = 0.;
+
+		is_write_xml_ = false;
 	}
 
 	void OnTheFlyROPA::SetupFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary& dictionary, boost::filesystem::path path_kinetics_output)
@@ -126,6 +136,9 @@ namespace OpenSMOKE
 			}
 		}
 
+		if (dictionary.CheckOption("@WriteXML") == true)
+			dictionary.ReadBool("@WriteXML", is_write_xml_);
+
 		Setup(path_kinetics_output);
 	}
 
@@ -163,6 +176,13 @@ namespace OpenSMOKE
 		fOut << "Number of species:   " << thermodynamicsMap_.NumberOfSpecies() << std::endl;
 		fOut << "Number of reactions: " << kineticsMap_.NumberOfReactions() << std::endl;
 		fOut << std::endl;
+
+		// Write XML file
+		if (is_write_xml_ == true)
+		{
+			xml_string_.open("ROPA.xml", std::ios::out);
+			WriteHeadXML(reactor_type);
+		}
 	}
 
 	bool OnTheFlyROPA::CheckForROPA(const int current_iteration, const double time, OpenSMOKE::OpenSMOKEVectorDouble& conversions)
@@ -200,12 +220,17 @@ namespace OpenSMOKE
 
 	void OnTheFlyROPA::Analyze(std::ofstream& fOut, const int iteration, const double t, const double T, const double P, const OpenSMOKE::OpenSMOKEVectorDouble& c, const OpenSMOKE::OpenSMOKEVectorDouble& omega, const OpenSMOKE::OpenSMOKEVectorDouble& omega0)
 	{
+		// Calculate conversions
 		OpenSMOKE::OpenSMOKEVectorDouble conversions(thermodynamicsMap_.NumberOfSpecies());
 		for (unsigned int i = 1; i <= thermodynamicsMap_.NumberOfSpecies(); i++)
 			conversions[i] = 1. - omega[i] / (omega0[i] + 1.e-32);
 
 		if (CheckForROPA(iteration, t, conversions) == true)
 		{
+			// Update current step and previous time
+			current_step_++;
+			if (current_step_ == 1)	told_ = t;
+
 			// Concentration [kmol/m3]
 			const double cTot = c.SumElements();
 
@@ -295,6 +320,17 @@ namespace OpenSMOKE
 			fOut << std::endl;
 			fOut << std::endl;
 
+			// Write xml
+			if (is_write_xml_ == true)
+			{
+				xml_string_ << "<ropa " << "time=" << "\"" << t << "\" "
+										<< "weight=" << "\"" << t-told_ << "\" "
+										<< "id=" << "\"" << current_step_ << "\" "
+										<< "T=" << "\"" << T << "\" "
+										<< "P=" << "\"" << P/101325. << "\">"
+										<< std::endl;
+			}
+
 			// Loop over all the species
 			for (unsigned int i = 0; i < list_species_.size(); i++)
 			{
@@ -359,7 +395,61 @@ namespace OpenSMOKE
 
 					fOut << std::endl;
 				}
+
+				// Write XML
+				if (is_write_xml_ == true)
+				{
+					// Main tag
+					xml_string_ << "<species "	<< "name=" << "\"" << thermodynamicsMap_.NamesOfSpecies()[index_of_species] << "\" " 
+												<< "id=" << "\"" << index_of_species+1 << "\">" << std::endl;
+
+					// Production contribution
+					const double sum_positive_coefficients = std::accumulate(reorder_positive_coefficients.begin(), reorder_positive_coefficients.end(), 0.);
+					xml_string_ << FormatXMLSingleVariable("tot-form", sum_positive_coefficients);
+					for (unsigned int i = 0; i < reordered_positive_indices.size(); i++)
+					{
+						const double percentage = reorder_positive_coefficients[i] / sum_positive_coefficients;
+						if (percentage > threshold_contributions_)
+						{
+							unsigned int j = reordered_positive_indices[i];
+
+							xml_string_ << "<form "
+										<< "id=" << "\"" << j << "\" "
+										<< "react=" << "\"" << reaction_names_[j] << "\">"
+										<< reorder_positive_coefficients[i]
+										<< "</form>" << std::endl;
+						}
+					}
+
+					// Consumption contributions
+					const double sum_negative_coefficients = std::accumulate(reorder_negative_coefficients.begin(), reorder_negative_coefficients.end(), 0.);
+					xml_string_ << FormatXMLSingleVariable("tot-consumption", sum_negative_coefficients);
+					for (unsigned int i = 0; i < reordered_negative_indices.size(); i++)
+					{
+						const double percentage = reorder_negative_coefficients[i] / sum_negative_coefficients;
+						if (percentage > threshold_contributions_)
+						{
+							unsigned int j = reordered_negative_indices[i];
+
+							xml_string_ << "<cons "
+										<< "id=" << "\"" << j << "\" "
+										<< "react=" << "\"" << reaction_names_[j] << "\">"
+										<< reorder_negative_coefficients[i]
+										<< "</cons>" << std::endl;
+						}
+					}
+
+					xml_string_ << "</species>" << std::endl;
+				}
 			}
+
+			if (is_write_xml_ == true)
+			{
+				xml_string_ << "</ropa>" << std::endl;
+			}
+
+			// Store previous time
+			told_ = t;
 		}
 	}
 
@@ -391,6 +481,40 @@ namespace OpenSMOKE
 		OpenSMOKE_Utilities::ReorderPairsOfVectors(reordered_negative_coefficients, reordered_negative_indices);
 		//	std::reverse(reordered_negative_indices.begin(), reordered_negative_indices.end());
 		//	std::reverse(reordered_negative_coefficients.begin(), reordered_negative_coefficients.end());
+	}
+
+	void OnTheFlyROPA::WriteHeadXML(const std::string reactor_type)
+	{
+		xml_string_ << std::setprecision(8);
+		xml_string_.setf(std::ios::scientific);
+		xml_string_ << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl;
+		xml_string_ << "<opensmoke version=\"0.1a\">" << std::endl;
+
+		xml_string_ << FormatXMLSingleVariable("AUnits", "[kmol, m, s]");
+		xml_string_ << FormatXMLSingleVariable("EUnits", "[cal/mol]");
+		xml_string_ << FormatXMLSingleVariable("omegaUnits", "[kmol/m3/s]");
+		xml_string_ << FormatXMLSingleVariable("rUnits", "[kmol/m3/s]");
+		xml_string_ << FormatXMLSingleVariable("TUnits", "[K]");
+		xml_string_ << FormatXMLSingleVariable("PUnits", "[atm]");
+		xml_string_ << FormatXMLSingleVariable("Compact", compact_mode_);
+		xml_string_ << FormatXMLSingleVariable("Merging", merge_reaction_rates_);
+		xml_string_ << FormatXMLSingleVariable("Threshold", threshold_contributions_);
+
+		xml_string_ << FormatXMLSingleVariable("Reactor", reactor_type);
+		xml_string_ << FormatXMLSingleVariable("Date", OpenSMOKE::GetCurrentDate());
+		xml_string_ << FormatXMLSingleVariable("Time", OpenSMOKE::GetCurrentTime());
+
+		xml_string_ << FormatXMLSingleVariable("NumberOfSpecies", thermodynamicsMap_.NumberOfSpecies());
+		xml_string_ << FormatXMLSingleVariable("NumberOfReactions", kineticsMap_.NumberOfReactions());
+	}
+
+	void OnTheFlyROPA::Close()
+	{
+		if (is_write_xml_ == true)
+		{
+			xml_string_ << "</opensmoke>" << std::endl;
+			xml_string_.close();
+		}
 	}
 }
 

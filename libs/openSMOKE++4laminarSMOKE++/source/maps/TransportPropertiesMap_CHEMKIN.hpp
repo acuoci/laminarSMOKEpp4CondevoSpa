@@ -651,7 +651,7 @@ namespace OpenSMOKE
 			else if (model == "Herning")		viscosity_model = PhysicalConstants::OPENSMOKE_GASMIXTURE_VISCOSITYMODEL_HERNING;
 			else if (model == "MathurSaxena")	viscosity_model = PhysicalConstants::OPENSMOKE_GASMIXTURE_VISCOSITYMODEL_MATHUR_SAXENA;
 			else ErrorMessage("TransportPropertiesMap_CHEMKIN::ImportViscosityModelFromXMLFile", "Error in reading the viscosity model.");
-		}
+	}
 	}
 
 	void TransportPropertiesMap_CHEMKIN::CompleteInitialization()
@@ -1469,7 +1469,7 @@ namespace OpenSMOKE
 		// From: Huaqiang CHU, Mingyan GU, Huaichun ZHOU, Fengshan LIU
 		//       Calculations of narrow-band transimissities and the Planck mean absorption coefficients 
 		//       of real gases using line - by - line and statistical narrow - band models
-		//       Front. Energy 2014, 8(1): 41–48, DOI 10.1007/s11708-013-0292-4
+		//       Front. Energy 2014, 8(1): 41-48, DOI 10.1007/s11708-013-0292-4
 		const double K_CO2 = (-40.129 + T*(3.40989e-1 + T*(-5.39606e-4 + T*(3.60606e-7 + T*(-1.11598e-10 + T*1.31847e-14))))) / 1.01325;
 
 		// 3. Carbon monoxide [1/m/bar]

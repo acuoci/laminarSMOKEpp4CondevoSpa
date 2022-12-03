@@ -224,11 +224,12 @@ namespace OpenSMOKE
 		*@brief Calculates the kinetic constants
 		*/
 		void KineticConstants();
+		void KineticConstants(const Eigen::VectorXi& important_reactions_steps);
 
 		/**
 		*@brief Calculates the kinetic constants for the important reaction steps only (coming from a DRG-like analysis)
 		*/
-		void KineticConstants(const Eigen::VectorXi& important_reactions_steps);
+		//void KineticConstants(const Eigen::VectorXi& important_reactions_steps);
 
 		/**
 		*@brief Calculates the kinetic constants with correction coefficients to account for temperature fluctuations

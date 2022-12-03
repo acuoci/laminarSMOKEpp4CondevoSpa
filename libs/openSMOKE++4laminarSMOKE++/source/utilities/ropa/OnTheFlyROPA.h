@@ -59,6 +59,7 @@ namespace OpenSMOKE
 		void Analyze(std::ofstream& fOut, const int current_step, const double t, const double T, const double P, const OpenSMOKE::OpenSMOKEVectorDouble& c, const OpenSMOKE::OpenSMOKEVectorDouble& omega, const OpenSMOKE::OpenSMOKEVectorDouble& omega0);
 
 		void WriteHead(std::ofstream& fOut, const std::string reactor_type);
+		void WriteHeadXML(const std::string reactor_type);
 
 		void SetThreshold(const double threshold) { threshold_contributions_ = threshold; }
 		void SetCompactMode(const bool compact_mode) { compact_mode_ = compact_mode; }
@@ -68,6 +69,8 @@ namespace OpenSMOKE
 		void SetReferenceSpecies(const std::string name) { reference_species_ = name; }
 		void SetNumberOfSteps(const unsigned int number_steps) { number_steps_ = number_steps; next_step_ = number_steps; }
 		void Setup(const boost::filesystem::path& path_kinetics_output);
+
+		void Close();
 
 	private:
 
@@ -95,6 +98,8 @@ namespace OpenSMOKE
 		int next_index_conversion_;
 		int next_index_time_;
 		bool compact_mode_;
+		int current_step_;
+		double told_;
 
 		bool is_active_;
 		OpenSMOKE::OpenSMOKEVectorDouble R_;
@@ -102,6 +107,9 @@ namespace OpenSMOKE
 		OpenSMOKE::OpenSMOKEVectorDouble D_;
 		OpenSMOKE::OpenSMOKEVectorDouble rf_;
 		OpenSMOKE::OpenSMOKEVectorDouble rb_;
+
+		bool is_write_xml_;
+		std::ofstream xml_string_;
 	};
 }
 
