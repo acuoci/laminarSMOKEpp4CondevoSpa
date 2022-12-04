@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     	laminarPimpleSMOKE++;
+application     	laminarMultiRegionPimpleSMOKE++;
 
 startFrom       	latestTime;
 
@@ -25,7 +25,7 @@ stopAt          	endTime;
 
 endTime         	1;
 
-deltaT          	1e-12;
+deltaT          	1e-6;
 
 writeControl    	adjustableRunTime;
 
@@ -35,7 +35,7 @@ purgeWrite      	2;
 
 writeFormat     	ascii;
 
-writePrecision  	12;
+writePrecision  	9;
 
 writeCompression 	off;
 

@@ -94,18 +94,18 @@ vertices
 );
 
 Nax01   4;
-Nax12   6;
-Nax23  40;
+Nax12   8;
+Nax23  60;
 Nax34  80;
-Nax45   5;
+Nax45  20;
 
-Nrad01   6;
-Nrad12  12;
+Nrad01   8;
+Nrad12  18;
 
 gradAx01 0.5;
 gradAx12 1.;
-gradAx23 1.;
-gradAx34 1.;
+gradAx23 3.;
+gradAx34 2.;
 gradAx45 1.;
 
 gradRad01 1.;

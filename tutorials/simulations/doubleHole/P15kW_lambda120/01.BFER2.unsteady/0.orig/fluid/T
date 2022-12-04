@@ -53,7 +53,7 @@ boundaryField
 
     heatExchanger
     {
-        type            externalWallHeatFluxTemperatureOpenSMOKEpp;
+        type            externalWallHeatFluxTemperature;
         mode            coefficient;
         Ta              $Twater;
         h               $exchangeCoefficient;
@@ -64,7 +64,7 @@ boundaryField
 
     fluid_to_solid
     {
-        type            compressible::turbulentTemperatureCoupledBaffleMixedOpenSMOKEpp;
+        type            compressible::turbulentTemperatureCoupledBaffleMixed;
         Tnbr            T;
         value           uniform 298.15;
     }

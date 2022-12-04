@@ -98,24 +98,6 @@ solvers
         nSweeps         1;
     }
 
-    csi
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-8;
-        relTol          0;
-	minIter		1;
-    }
-
-    tau
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-8;
-        relTol          0;
-	minIter		1;
-    }
-
     "Ii.*"
     {
         solver              GAMG;

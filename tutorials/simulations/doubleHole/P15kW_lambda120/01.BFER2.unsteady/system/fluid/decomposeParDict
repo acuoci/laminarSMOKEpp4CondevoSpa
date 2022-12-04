@@ -17,11 +17,11 @@ FoamFile
 
 method simple;
 
-numberOfSubdomains 16;
+numberOfSubdomains 3;
 
 simpleCoeffs
 {
-    n               ( 1 1 16 );
+    n               ( 1 1 3 );
     delta           0.001;
 }
 

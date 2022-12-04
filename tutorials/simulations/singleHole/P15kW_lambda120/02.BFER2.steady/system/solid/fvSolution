@@ -17,7 +17,7 @@ FoamFile
 
 solvers
 {
-    h
+    e
     {
         solver          smoothSolver;
         smoother        GaussSeidel;
@@ -33,7 +33,7 @@ SIMPLE
 
     residualControl
     {
-       	h	1e-8;
+       	e	1e-8;
     }
 }
 
@@ -41,7 +41,7 @@ relaxationFactors
 {
     equations
     {
-	h	0.3;
+	e	0.3;
     }
 }
 

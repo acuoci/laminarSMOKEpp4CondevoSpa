@@ -10,8 +10,7 @@ rm -r constant/fluid/polyMesh
 rm -r constant/solid/polyMesh
 
 # Mesh conversion
-tar -xvf ../../Meshes/Mesh_1200k.msh.tar.gz
-fluentMeshToFoam  Mesh_1200k.msh  -writeSets -writeZones
+fluentMeshToFoam  ../../Meshes/Mesh_1200k.msh  -writeSets -writeZones
 setsToZones -noFlipMap
 
 # Renumbering
@@ -25,6 +24,20 @@ splitMeshRegions -cellZonesOnly -overwrite
 
 # Remove unsplitted mesh
 rm -r constant/polyMesh
+
+#Rename boundaries
+sed -i 's/sideeast-fluid/sideEast/g' constant/fluid/polyMesh/boundary
+sed -i 's/sidewest-fluid/sideWest/g' constant/fluid/polyMesh/boundary
+sed -i 's/facenorth-fluid/faceNorth/g' constant/fluid/polyMesh/boundary
+sed -i 's/facesouth/faceSouth/g' constant/fluid/polyMesh/boundary
+sed -i 's/sideeast-solid/sideEast/g' constant/solid/polyMesh/boundary
+sed -i 's/sidewest-solid/sideWest/g' constant/solid/polyMesh/boundary
+sed -i 's/facenorth-solid/faceNorth/g' constant/solid/polyMesh/boundary
+sed -i 's/facesouth/faceSouth/g' constant/solid/polyMesh/boundary
+sed -i 's/symmetry/symmetryPlane/g' constant/fluid/polyMesh/boundary
+sed -i 's/symmetry/symmetryPlane/g' constant/solid/polyMesh/boundary
+sed -i 's/axis-fluid/axis/g' constant/fluid/polyMesh/boundary
+sed -i 's/axis-solid/axis/g' constant/solid/polyMesh/boundary
 
 # Check mesh
 checkMesh -region fluid

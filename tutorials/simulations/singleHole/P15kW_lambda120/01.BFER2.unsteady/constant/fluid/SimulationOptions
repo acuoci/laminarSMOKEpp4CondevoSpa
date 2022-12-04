@@ -19,16 +19,17 @@ FoamFile
 Kinetics
 {
 	folder		"/home/acuoci/OpenFOAM/acuoci-9/applications/laminarSMOKEpp4CondevoSpa/tutorials/kineticMechanisms/BFER_CH4_2step/kinetics/";
-//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/ChemkinReduced-Lu-CH4Lean-13species/kinetics";
-//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/Attili-Skeletal16/kinetics";
-//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/CRECK-Skeletal-24/kinetics";
-//	folder		"/home/chimica2/cuoci/MyRuns/Condevo/KinetiMechanisms/CRECK-Skeletal-24-NOX/kinetics";
+
+//	folder		"/home/acuoci/OpenFOAM/acuoci-9/applications/laminarSMOKEpp4CondevoSpa/tutorials/kineticMechanisms/CRECK-Skeletal-24/kinetics";
+
+//	folder		"/home/acuoci/OpenFOAM/acuoci-9/applications/laminarSMOKEpp4CondevoSpa/tutorials/kineticMechanisms/CRECK-Skeletal-24-NOX/kinetics";
 
 	inertSpecies    "N2";	// name of inert species
 }
 
 
-// Additional options
+// Clustering (to accelerate the chemical step)
+// If the simulation starts from scratch, Clustering option must be turned off
 Clustering	off;
 
 
